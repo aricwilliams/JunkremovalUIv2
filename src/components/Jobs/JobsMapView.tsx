@@ -205,7 +205,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
         addJobMarkers();
 
         // Handle click events
-        view.on('click', (event) => {
+        view.on('click', (event: any) => {
           view.hitTest(event).then((response: any) => {
             const results = response.results.filter(
               (result: any) => result.graphic.layer === graphicsLayerRef.current
@@ -262,11 +262,11 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
   return (
     <div className="relative">
       {/* Filters Panel */}
-      <div className="absolute top-4 left-4 z-10">
-        <div className="bg-white rounded-lg shadow-lg p-4">
-          <div className="flex items-center space-x-2 mb-4">
+      <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-10">
+        <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 max-w-xs sm:max-w-none">
+          <div className="flex items-center space-x-2 mb-3 sm:mb-4">
             <Filter className="w-4 h-4" />
-            <span className="font-medium">Filters</span>
+            <span className="font-medium text-sm sm:text-base">Filters</span>
             <button
               onClick={() => setShowFilters(!showFilters)}
               className="ml-auto text-gray-500 hover:text-gray-700"
@@ -276,11 +276,11 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
           </div>
 
           {showFilters && (
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
               >
                 <option value="all">All Status</option>
                 <option value="scheduled">Scheduled</option>
@@ -298,9 +298,9 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
 
               <button
                 onClick={resetMapView}
-                className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+                className="w-full flex items-center justify-center space-x-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs sm:text-sm"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>Reset Map View</span>
               </button>
             </div>
@@ -313,38 +313,38 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
         {loading && (
           <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-20">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading map...</p>
+              <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-blue-600 mx-auto mb-3 sm:mb-4"></div>
+              <p className="text-sm sm:text-base text-gray-600">Loading map...</p>
             </div>
           </div>
         )}
 
         <div
           ref={mapRef}
-          className="w-full h-[calc(100vh-200px)] rounded-lg shadow-lg"
+          className="w-full h-[calc(100vh-300px)] sm:h-[calc(100vh-200px)] rounded-lg shadow-lg"
         ></div>
       </div>
 
       {/* Job Details Modal */}
       {openModal && selectedJob && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-lg max-w-sm sm:max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 {selectedJob.customerName}
               </h3>
               <button
                 onClick={handleCloseModal}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{selectedJob.address}, {selectedJob.city}, {selectedJob.state}</span>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex items-start space-x-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span className="break-words">{selectedJob.address}, {selectedJob.city}, {selectedJob.state}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -369,14 +369,14 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
               {selectedJob.notes && (
                 <div className="text-sm text-gray-600">
                   <p className="font-medium mb-1">Notes:</p>
-                  <p>{selectedJob.notes}</p>
+                  <p className="break-words">{selectedJob.notes}</p>
                 </div>
               )}
 
-              <div className="flex space-x-2 pt-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 pt-3 sm:pt-4">
                 <button
                   onClick={() => handleGoogleMaps(selectedJob)}
-                  className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm"
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Open in Google Maps</span>
@@ -387,7 +387,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
                       onJobSelect(selectedJob);
                       handleCloseModal();
                     }}
-                    className="flex-1 flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                    className="flex-1 flex items-center justify-center space-x-2 bg-green-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
                   >
                     <Play className="w-4 h-4" />
                     <span>Track Progress</span>

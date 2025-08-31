@@ -1,9 +1,9 @@
 import React from 'react';
-import { 
-  Home, 
-  Calendar, 
-  Users, 
-  UserPlus, 
+import {
+  Home,
+  Calendar,
+  Users,
+  UserPlus,
   Calculator,
   BarChart3,
   Settings,
@@ -11,7 +11,10 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
-  Briefcase
+  Briefcase,
+  Truck,
+  UserCheck,
+  Building
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 
@@ -24,57 +27,75 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { currentView, setCurrentView, jobs, leads, analytics } = useApp();
 
   const menuItems = [
-    { 
-      id: 'dashboard', 
-      label: 'Dashboard', 
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
       icon: Home,
       badge: null
     },
-    { 
-      id: 'jobs', 
-      label: 'Jobs', 
+    {
+      id: 'jobs',
+      label: 'Jobs',
       icon: Briefcase,
       badge: jobs.filter(j => j.status === 'scheduled' || j.status === 'in-progress').length
     },
-    { 
-      id: 'bookings', 
-      label: 'Bookings', 
+    {
+      id: 'bookings',
+      label: 'Bookings',
       icon: CheckCircle,
       badge: jobs.filter(j => j.status === 'scheduled').length
     },
-    { 
-      id: 'calendar', 
-      label: 'Calendar', 
+    {
+      id: 'calendar',
+      label: 'Calendar',
       icon: Calendar,
       badge: null
     },
-    { 
-      id: 'customers', 
-      label: 'Customers', 
+    {
+      id: 'customers',
+      label: 'Customers',
       icon: Users,
       badge: null
     },
-    { 
-      id: 'leads', 
-      label: 'Leads', 
+    {
+      id: 'leads',
+      label: 'Leads',
       icon: UserPlus,
       badge: leads.filter(l => l.status === 'new').length
     },
-    { 
-      id: 'estimates', 
-      label: 'Estimates', 
+    {
+      id: 'estimates',
+      label: 'Estimates',
       icon: Calculator,
       badge: null
     },
-    { 
-      id: 'analytics', 
-      label: 'Analytics', 
+    {
+      id: 'trucks',
+      label: 'Fleet Management',
+      icon: Truck,
+      badge: null
+    },
+    {
+      id: 'employees',
+      label: 'Employees',
+      icon: UserCheck,
+      badge: null
+    },
+    {
+      id: 'portal',
+      label: 'Client Portal',
+      icon: Building,
+      badge: null
+    },
+    {
+      id: 'analytics',
+      label: 'Analytics',
       icon: BarChart3,
       badge: null
     },
-    { 
-      id: 'settings', 
-      label: 'Settings', 
+    {
+      id: 'settings',
+      label: 'Settings',
       icon: Settings,
       badge: null
     }
@@ -89,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     <>
       {/* Overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={onClose}
         />
@@ -123,7 +144,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
               </div>
               <p className="text-lg font-bold text-blue-900">${analytics.totalRevenue.toLocaleString()}</p>
             </div>
-            
+
             <div className="bg-orange-50 p-3 rounded-lg">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-orange-800">Pending Jobs</span>
@@ -140,15 +161,15 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = currentView === item.id;
-              
+
               return (
                 <button
                   key={item.id}
                   onClick={() => handleMenuClick(item.id)}
                   className={`
                     w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors
-                    ${isActive 
-                      ? 'bg-blue-600 text-white' 
+                    ${isActive
+                      ? 'bg-blue-600 text-white'
                       : 'text-gray-700 hover:bg-gray-100'
                     }
                   `}
@@ -157,12 +178,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{item.label}</span>
                   </div>
-                  
+
                   {item.badge && item.badge > 0 && (
                     <span className={`
                       px-2 py-1 text-xs rounded-full font-medium
-                      ${isActive 
-                        ? 'bg-white text-blue-600' 
+                      ${isActive
+                        ? 'bg-white text-blue-600'
                         : 'bg-red-500 text-white'
                       }
                     `}>
