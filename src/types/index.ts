@@ -400,7 +400,7 @@ export interface PortalRequest {
   customerId: string;
   customerName: string;
   type: 'pickup' | 'service' | 'quote' | 'support';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  priority: 'low' | 'medium' | 'high' | 'urgent' | 'standard';
   status: 'pending' | 'in-progress' | 'completed' | 'cancelled';
   subject: string;
   description: string;
@@ -422,6 +422,38 @@ export interface PortalRequest {
   notes: string;
   created: Date;
   updated: Date;
+  // Additional fields for junk removal requests
+  fullName?: string;
+  phone?: string;
+  email?: string;
+  serviceAddress?: string;
+  gateCode?: string;
+  apartmentNumber?: string;
+  locationOnProperty?: string;
+  accessConsiderations?: string;
+  approximateVolume?: string;
+  materialTypes?: string[];
+  filledWithWater?: boolean;
+  filledWithOil?: boolean;
+  hazardousMaterial?: boolean;
+  hazardousDescription?: string;
+  itemsInBags?: boolean;
+  bagContents?: string;
+  oversizedItems?: boolean;
+  oversizedDescription?: string;
+  approximateItemCount?: string;
+  hasMold?: boolean;
+  hasPests?: boolean;
+  hasSharpObjects?: boolean;
+  heavyLiftingRequired?: boolean;
+  disassemblyRequired?: boolean;
+  disassemblyDescription?: string;
+  additionalNotes?: string;
+  requestDonationPickup?: boolean;
+  requestDemolition?: boolean;
+  demolitionDescription?: string;
+  howDidYouHear?: string;
+  textOptIn?: boolean;
 }
 
 export interface PortalReport {
@@ -452,6 +484,13 @@ export interface PortalReport {
   };
   generatedDate: Date;
   downloadUrl: string;
+}
+
+// Client Request that can be converted to Estimate
+export interface ClientRequest extends PortalRequest {
+  estimateId?: string;
+  canCreateEstimate: boolean;
+  estimateStatus: 'pending' | 'created' | 'sent' | 'accepted' | 'rejected';
 }
 
 export interface Analytics {

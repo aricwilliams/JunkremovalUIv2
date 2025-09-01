@@ -4,7 +4,7 @@ import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
 import DashboardView from './components/Dashboard/DashboardView';
 import JobsView from './components/Jobs/JobsView';
-import BookingForm from './components/Booking/BookingForm';
+
 import CalendarView from './components/Calendar/CalendarView';
 import CustomersView from './components/Customers/CustomersView';
 import LeadsView from './components/Leads/LeadsView';
@@ -25,8 +25,7 @@ const AppContent: React.FC = () => {
         return <DashboardView />;
       case 'jobs':
         return <JobsView />;
-      case 'bookings':
-        return <BookingForm />;
+
       case 'calendar':
         return <CalendarView />;
       case 'customers':

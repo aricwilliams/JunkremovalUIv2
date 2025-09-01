@@ -27,7 +27,15 @@ import {
     Edit,
     X,
     UserPlus,
-    Key
+    Key,
+    Camera,
+    Video,
+    AlertCircle,
+    Info,
+    CheckSquare,
+    Square,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 import { PortalUser, PortalRequest, PortalReport, Job, Invoice, Customer } from '../../types';
 
@@ -38,6 +46,62 @@ const ClientPortal: React.FC = () => {
     const [showAddClient, setShowAddClient] = useState(false);
     const [showEditClient, setShowEditClient] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Customer | null>(null);
+    const [requestFormData, setRequestFormData] = useState({
+        // Client Selection
+        isNewClient: true,
+        selectedClientId: '',
+
+        // Basic Contact Info
+        fullName: '',
+        phone: '',
+        email: '',
+        textOptIn: false,
+        serviceAddress: '',
+        gateCode: '',
+        apartmentNumber: '',
+
+        // Project Details
+        preferredDate: '',
+        preferredTime: '',
+        locationOnProperty: '',
+        accessConsiderations: '',
+        approximateVolume: '',
+
+        // Photos & Media
+        photos: [] as File[],
+        videos: [] as File[],
+
+        // Item Type & Condition
+        materialTypes: [] as string[],
+        filledWithWater: false,
+        filledWithOil: false,
+        hazardousMaterial: false,
+        hazardousDescription: '',
+        itemsInBags: false,
+        bagContents: '',
+        oversizedItems: false,
+        oversizedDescription: '',
+        approximateItemCount: '',
+
+        // Safety & Hazards
+        hasMold: false,
+        hasPests: false,
+        hasSharpObjects: false,
+        heavyLiftingRequired: false,
+        disassemblyRequired: false,
+        disassemblyDescription: '',
+
+        // Customer Notes
+        additionalNotes: '',
+        requestDonationPickup: false,
+        requestDemolition: false,
+        demolitionDescription: '',
+
+        // Follow-up
+        howDidYouHear: '',
+        understandPricing: false,
+        priority: 'standard' as 'standard' | 'urgent'
+    });
 
     // Mock data - in real app this would come from context/API
     const [portalUser] = useState<PortalUser>({
@@ -362,6 +426,178 @@ const ClientPortal: React.FC = () => {
     const handleCreateRequest = (request: PortalRequest) => {
         setRequests(prev => [...prev, request]);
         setShowNewRequest(false);
+    };
+
+    const handleFileUpload = (files: FileList, type: 'photos' | 'videos') => {
+        const fileArray = Array.from(files);
+        setRequestFormData(prev => ({
+            ...prev,
+            [type]: [...prev[type], ...fileArray]
+        }));
+    };
+
+    const removeFile = (index: number, type: 'photos' | 'videos') => {
+        setRequestFormData(prev => ({
+            ...prev,
+            [type]: prev[type].filter((_, i) => i !== index)
+        }));
+    };
+
+    const handleMaterialTypeToggle = (materialType: string) => {
+        setRequestFormData(prev => ({
+            ...prev,
+            materialTypes: prev.materialTypes.includes(materialType)
+                ? prev.materialTypes.filter(type => type !== materialType)
+                : [...prev.materialTypes, materialType]
+        }));
+    };
+
+    const handleClientSelection = (isNewClient: boolean, clientId?: string) => {
+        if (isNewClient) {
+            setRequestFormData(prev => ({
+                ...prev,
+                isNewClient: true,
+                selectedClientId: '',
+                fullName: '',
+                phone: '',
+                email: '',
+                serviceAddress: '',
+                gateCode: '',
+                apartmentNumber: ''
+            }));
+        } else {
+            const selectedClient = clients.find(c => c.id === clientId);
+            if (selectedClient) {
+                setRequestFormData(prev => ({
+                    ...prev,
+                    isNewClient: false,
+                    selectedClientId: selectedClient.id,
+                    fullName: selectedClient.name,
+                    phone: selectedClient.phone,
+                    email: selectedClient.email,
+                    serviceAddress: selectedClient.address,
+                    gateCode: '',
+                    apartmentNumber: ''
+                }));
+            } else {
+                // If no client ID provided, just toggle the checkbox
+                setRequestFormData(prev => ({
+                    ...prev,
+                    isNewClient: false,
+                    selectedClientId: ''
+                }));
+            }
+        }
+    };
+
+    const handleSubmitRequest = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        // Validate form based on client type
+        if (!requestFormData.isNewClient && !requestFormData.selectedClientId) {
+            alert('Please select an existing client');
+            return;
+        }
+
+        if (requestFormData.isNewClient && (!requestFormData.fullName || !requestFormData.phone || !requestFormData.email || !requestFormData.serviceAddress)) {
+            alert('Please fill in all required fields for new client');
+            return;
+        }
+
+        // Create a new request with the form data
+        const newRequest: PortalRequest = {
+            id: `req-${Date.now()}`,
+            customerId: requestFormData.isNewClient ? `new-${Date.now()}` : requestFormData.selectedClientId,
+            customerName: requestFormData.isNewClient ? requestFormData.fullName : clients.find(c => c.id === requestFormData.selectedClientId)?.name || 'Unknown Client',
+            type: 'pickup',
+            priority: requestFormData.priority,
+            status: 'pending',
+            subject: `Junk Removal Request - ${requestFormData.isNewClient ? requestFormData.fullName : clients.find(c => c.id === requestFormData.selectedClientId)?.name || 'Unknown Client'}`,
+            description: `Request from ${requestFormData.isNewClient ? requestFormData.fullName : clients.find(c => c.id === requestFormData.selectedClientId)?.name || 'Unknown Client'} for junk removal service.`,
+            requestedDate: new Date(),
+            preferredDate: requestFormData.preferredDate ? new Date(requestFormData.preferredDate) : new Date(),
+            preferredTime: requestFormData.preferredTime || 'Flexible',
+            location: {
+                address: requestFormData.serviceAddress || clients.find(c => c.id === requestFormData.selectedClientId)?.address || '',
+                city: requestFormData.isNewClient ? 'TBD' : clients.find(c => c.id === requestFormData.selectedClientId)?.city || 'TBD',
+                state: requestFormData.isNewClient ? 'TBD' : clients.find(c => c.id === requestFormData.selectedClientId)?.state || 'TBD',
+                zipCode: requestFormData.isNewClient ? 'TBD' : clients.find(c => c.id === requestFormData.selectedClientId)?.zipCode || 'TBD'
+            },
+            volume: {
+                weight: 0, // Will be determined after review
+                yardage: 0
+            },
+            attachments: [], // Photos and videos would be handled separately in real app
+            notes: `Contact: ${requestFormData.isNewClient ? requestFormData.fullName : clients.find(c => c.id === requestFormData.selectedClientId)?.name || 'Unknown Client'} | Phone: ${requestFormData.phone || clients.find(c => c.id === requestFormData.selectedClientId)?.phone || 'N/A'} | Email: ${requestFormData.email || clients.find(c => c.id === requestFormData.selectedClientId)?.email || 'N/A'}
+                    Location on Property: ${requestFormData.locationOnProperty}
+                    Access Considerations: ${requestFormData.accessConsiderations}
+                    Approximate Volume: ${requestFormData.approximateVolume}
+                    Material Types: ${requestFormData.materialTypes.join(', ')}
+                    Special Conditions: ${[
+                    requestFormData.filledWithWater && 'Filled with water',
+                    requestFormData.filledWithOil && 'Filled with oil/fuel',
+                    requestFormData.hazardousMaterial && `Hazardous materials: ${requestFormData.hazardousDescription}`,
+                    requestFormData.itemsInBags && `Items in bags: ${requestFormData.bagContents}`,
+                    requestFormData.oversizedItems && `Oversized items: ${requestFormData.oversizedDescription}`,
+                    requestFormData.hasMold && 'Mold present',
+                    requestFormData.hasPests && 'Pests present',
+                    requestFormData.hasSharpObjects && 'Sharp objects present',
+                    requestFormData.heavyLiftingRequired && 'Heavy lifting required',
+                    requestFormData.disassemblyRequired && `Disassembly required: ${requestFormData.disassemblyDescription}`,
+                    requestFormData.requestDonationPickup && 'Donation pickup requested',
+                    requestFormData.requestDemolition && `Demolition requested: ${requestFormData.demolitionDescription}`
+                ].filter(Boolean).join(', ')}
+                    Additional Notes: ${requestFormData.additionalNotes}
+                    How did you hear about us: ${requestFormData.howDidYouHear}
+                    Priority: ${requestFormData.priority}`,
+            created: new Date(),
+            updated: new Date()
+        };
+
+        setRequests(prev => [...prev, newRequest]);
+        setShowNewRequest(false);
+        // Reset form data
+        setRequestFormData({
+            isNewClient: true,
+            selectedClientId: '',
+            fullName: '',
+            phone: '',
+            email: '',
+            textOptIn: false,
+            serviceAddress: '',
+            gateCode: '',
+            apartmentNumber: '',
+            preferredDate: '',
+            preferredTime: '',
+            locationOnProperty: '',
+            accessConsiderations: '',
+            approximateVolume: '',
+            photos: [],
+            videos: [],
+            materialTypes: [],
+            filledWithWater: false,
+            filledWithOil: false,
+            hazardousMaterial: false,
+            hazardousDescription: '',
+            itemsInBags: false,
+            bagContents: '',
+            oversizedItems: false,
+            oversizedDescription: '',
+            approximateItemCount: '',
+            hasMold: false,
+            hasPests: false,
+            hasSharpObjects: false,
+            heavyLiftingRequired: false,
+            disassemblyRequired: false,
+            disassemblyDescription: '',
+            additionalNotes: '',
+            requestDonationPickup: false,
+            requestDemolition: false,
+            demolitionDescription: '',
+            howDidYouHear: '',
+            understandPricing: false,
+            priority: 'standard'
+        });
     };
 
     return (
@@ -888,6 +1124,21 @@ const ClientPortal: React.FC = () => {
                 </div>
             </div>
 
+            {/* New Request Modal */}
+            {showNewRequest && (
+                <NewRequestModal
+                    onClose={() => setShowNewRequest(false)}
+                    onSubmit={handleSubmitRequest}
+                    formData={requestFormData}
+                    setFormData={setRequestFormData}
+                    handleFileUpload={handleFileUpload}
+                    removeFile={removeFile}
+                    handleMaterialTypeToggle={handleMaterialTypeToggle}
+                    clients={clients}
+                    handleClientSelection={handleClientSelection}
+                />
+            )}
+
             {/* Add Client Modal */}
             {showAddClient && (
                 <AddClientModal
@@ -914,6 +1165,735 @@ const ClientPortal: React.FC = () => {
                     }}
                 />
             )}
+        </div>
+    );
+};
+
+// New Request Modal Component
+interface NewRequestModalProps {
+    onClose: () => void;
+    onSubmit: (e: React.FormEvent) => void;
+    formData: any;
+    setFormData: (data: any) => void;
+    handleFileUpload: (files: FileList, type: 'photos' | 'videos') => void;
+    removeFile: (index: number, type: 'photos' | 'videos') => void;
+    handleMaterialTypeToggle: (materialType: string) => void;
+    clients: Customer[];
+    handleClientSelection: (isNewClient: boolean, clientId?: string) => void;
+}
+
+const NewRequestModal: React.FC<NewRequestModalProps> = ({
+    onClose,
+    onSubmit,
+    formData,
+    setFormData,
+    handleFileUpload,
+    removeFile,
+    handleMaterialTypeToggle,
+    clients,
+    handleClientSelection
+}) => {
+    const materialTypeOptions = [
+        'Wood', 'Metal', 'Electronics', 'Furniture', 'Appliances',
+        'Yard Debris', 'Construction Waste', 'Clothing', 'Books', 'Mixed'
+    ];
+
+    const volumeOptions = [
+        'Small Load (1-2 items)', 'Half Truck', 'Full Truck', 'Multiple Trucks', 'Unsure'
+    ];
+
+    const locationOptions = [
+        'Curbside', 'Inside House', 'Garage', 'Upstairs', 'Backyard', 'Basement', 'Attic', 'Mixed'
+    ];
+
+    const howDidYouHearOptions = [
+        'Google Search', 'Facebook', 'Referral', 'Repeat Customer', 'Yelp', 'Other'
+    ];
+
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-6 border-b">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">New Junk Removal Request</h2>
+                        <p className="text-sm text-gray-600 mt-1">Tell us about your junk removal project for a custom quote</p>
+                    </div>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                        <X className="w-6 h-6" />
+                    </button>
+                </div>
+
+                <form onSubmit={onSubmit} className="p-6 space-y-8">
+                    {/* Client Selection */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <Users className="w-5 h-5 mr-2" />
+                            Client Information
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center space-x-4">
+                                <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.isNewClient}
+                                        onChange={() => {
+                                            if (!formData.isNewClient) {
+                                                handleClientSelection(true);
+                                            }
+                                        }}
+                                        className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">New Client</span>
+                                </label>
+                                <label className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={!formData.isNewClient}
+                                        onChange={() => {
+                                            if (formData.isNewClient) {
+                                                handleClientSelection(false);
+                                            }
+                                        }}
+                                        className="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">Existing Client</span>
+                                </label>
+                            </div>
+
+                            {!formData.isNewClient && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Select Existing Client</label>
+                                    <select
+                                        value={formData.selectedClientId}
+                                        onChange={(e) => handleClientSelection(false, e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required={!formData.isNewClient}
+                                    >
+                                        <option value="">Choose a client...</option>
+                                        {clients.map(client => (
+                                            <option key={client.id} value={client.id}>
+                                                {client.name} - {client.email}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Client contact information and address will be automatically filled from our records. These fields are read-only when existing client is selected.
+                                    </p>
+                                    {formData.selectedClientId && (
+                                        <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                            <p className="text-xs text-blue-700 flex items-center">
+                                                <Info className="w-3 h-3 mr-1" />
+                                                <strong>{clients.find(c => c.id === formData.selectedClientId)?.name}</strong> selected. Client information populated (read-only).
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Basic Contact Info */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <UserPlus className="w-5 h-5 mr-2" />
+                            Basic Contact Information
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Full Name *
+                                    {!formData.isNewClient && formData.selectedClientId && (
+                                        <span className="ml-1 text-xs text-blue-600">(from client record)</span>
+                                    )}
+                                </label>
+                                <input
+                                    type="text"
+                                    required={formData.isNewClient || !formData.selectedClientId}
+                                    value={formData.fullName}
+                                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!formData.isNewClient && formData.selectedClientId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    disabled={!formData.isNewClient && formData.selectedClientId}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Phone Number *
+                                    {!formData.isNewClient && formData.selectedClientId && (
+                                        <span className="ml-1 text-xs text-blue-600">(from client record)</span>
+                                    )}
+                                </label>
+                                <input
+                                    type="tel"
+                                    required={formData.isNewClient || !formData.selectedClientId}
+                                    value={formData.phone}
+                                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!formData.isNewClient && formData.selectedClientId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    disabled={!formData.isNewClient && formData.selectedClientId}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Email Address *
+                                    {!formData.isNewClient && formData.selectedClientId && (
+                                        <span className="ml-1 text-xs text-blue-600">(from client record)</span>
+                                    )}
+                                </label>
+                                <input
+                                    type="email"
+                                    required={formData.isNewClient || !formData.selectedClientId}
+                                    value={formData.email}
+                                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!formData.isNewClient && formData.selectedClientId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    disabled={!formData.isNewClient && formData.selectedClientId}
+                                />
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.textOptIn}
+                                    onChange={(e) => setFormData({ ...formData, textOptIn: e.target.checked })}
+                                    className={`rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${!formData.isNewClient && formData.selectedClientId ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    disabled={!formData.isNewClient && formData.selectedClientId}
+                                />
+                                <span className={`ml-2 text-sm ${!formData.isNewClient && formData.selectedClientId ? 'text-gray-500' : 'text-gray-700'}`}>OK to text me updates</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Service Address */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <MapPin className="w-5 h-5 mr-2" />
+                            Service Address
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="sm:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Service Address *
+                                    {!formData.isNewClient && formData.selectedClientId && (
+                                        <span className="ml-1 text-xs text-blue-600">(from client record)</span>
+                                    )}
+                                </label>
+                                <input
+                                    type="text"
+                                    required={formData.isNewClient || !formData.selectedClientId}
+                                    value={formData.serviceAddress}
+                                    onChange={(e) => setFormData({ ...formData, serviceAddress: e.target.value })}
+                                    className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!formData.isNewClient && formData.selectedClientId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    placeholder="Street address where junk removal will occur"
+                                    disabled={!formData.isNewClient && formData.selectedClientId}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Gate Code (if applicable)</label>
+                                <input
+                                    type="text"
+                                    value={formData.gateCode}
+                                    onChange={(e) => setFormData({ ...formData, gateCode: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Gate code for access"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Apartment/Unit Number</label>
+                                <input
+                                    type="text"
+                                    value={formData.apartmentNumber}
+                                    onChange={(e) => setFormData({ ...formData, apartmentNumber: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Apartment or unit number"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Project Details */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <Calendar className="w-5 h-5 mr-2" />
+                            Project Details
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
+                                <input
+                                    type="date"
+                                    value={formData.preferredDate}
+                                    onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Final scheduling confirmed after quote approval</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Time</label>
+                                <select
+                                    value={formData.preferredTime}
+                                    onChange={(e) => setFormData({ ...formData, preferredTime: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select time</option>
+                                    <option value="morning">Morning (8 AM - 12 PM)</option>
+                                    <option value="afternoon">Afternoon (12 PM - 4 PM)</option>
+                                    <option value="evening">Evening (4 PM - 8 PM)</option>
+                                    <option value="flexible">Flexible</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Location on Property *</label>
+                                <select
+                                    required={true}
+                                    value={formData.locationOnProperty}
+                                    onChange={(e) => setFormData({ ...formData, locationOnProperty: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select location</option>
+                                    {locationOptions.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Volume</label>
+                                <select
+                                    value={formData.approximateVolume}
+                                    onChange={(e) => setFormData({ ...formData, approximateVolume: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select volume</option>
+                                    {volumeOptions.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="sm:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Access Considerations</label>
+                                <textarea
+                                    value={formData.accessConsiderations}
+                                    onChange={(e) => setFormData({ ...formData, accessConsiderations: e.target.value })}
+                                    rows={2}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Stairs, elevator, narrow hallways, locked areas, etc."
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Photos & Media Upload */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <Camera className="w-5 h-5 mr-2" />
+                            Photos & Media Upload
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Photos</label>
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="image/*"
+                                        onChange={(e) => e.target.files && handleFileUpload(e.target.files, 'photos')}
+                                        className="hidden"
+                                        id="photo-upload"
+                                    />
+                                    <label htmlFor="photo-upload" className="cursor-pointer">
+                                        <Camera className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                        <p className="text-sm text-gray-600">Click to upload photos or drag and drop</p>
+                                        <p className="text-xs text-gray-500">Multiple images allowed</p>
+                                    </label>
+                                </div>
+                                {formData.photos.length > 0 && (
+                                    <div className="mt-3">
+                                        <p className="text-sm font-medium text-gray-700 mb-2">Uploaded Photos:</p>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                            {formData.photos.map((photo, index) => (
+                                                <div key={index} className="relative">
+                                                    <img
+                                                        src={URL.createObjectURL(photo)}
+                                                        alt={`Photo ${index + 1}`}
+                                                        className="w-full h-20 object-cover rounded border"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(index, 'photos')}
+                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                                                    >
+                                                        ×
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Upload Videos (Optional)</label>
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                    <input
+                                        type="file"
+                                        multiple
+                                        accept="video/*"
+                                        onChange={(e) => e.target.files && handleFileUpload(e.target.files, 'videos')}
+                                        className="hidden"
+                                        id="video-upload"
+                                    />
+                                    <label htmlFor="video-upload" className="cursor-pointer">
+                                        <Video className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                                        <p className="text-sm text-gray-600">Click to upload videos or drag and drop</p>
+                                        <p className="text-xs text-gray-500">Walk through your pile and explain</p>
+                                    </label>
+                                </div>
+                                {formData.videos.length > 0 && (
+                                    <div className="mt-3">
+                                        <p className="text-sm font-medium text-gray-700 mb-2">Uploaded Videos:</p>
+                                        <div className="space-y-2">
+                                            {formData.videos.map((video, index) => (
+                                                <div key={index} className="flex items-center space-x-2">
+                                                    <Video className="w-4 h-4 text-gray-400" />
+                                                    <span className="text-sm text-gray-600">{video.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeFile(index, 'videos')}
+                                                        className="text-red-500 hover:text-red-600 text-sm"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Item Type & Condition */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <Package className="w-5 h-5 mr-2" />
+                            Item Type & Condition
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Material Types</label>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {materialTypeOptions.map(materialType => (
+                                        <label key={materialType} className="flex items-center">
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.materialTypes.includes(materialType)}
+                                                onChange={() => handleMaterialTypeToggle(materialType)}
+                                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                            />
+                                            <span className="ml-2 text-sm text-gray-700">{materialType}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Item Count</label>
+                                    <input
+                                        type="text"
+                                        value={formData.approximateItemCount}
+                                        onChange={(e) => setFormData({ ...formData, approximateItemCount: e.target.value })}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="e.g., 10-15 items, mixed pile, etc."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.filledWithWater}
+                                        onChange={(e) => setFormData({ ...formData, filledWithWater: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Items filled with water</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.filledWithOil}
+                                        onChange={(e) => setFormData({ ...formData, filledWithOil: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Items filled with oil/fuel</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.hazardousMaterial}
+                                        onChange={(e) => setFormData({ ...formData, hazardousMaterial: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Hazardous materials present</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.itemsInBags}
+                                        onChange={(e) => setFormData({ ...formData, itemsInBags: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Items tied in bags</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.oversizedItems}
+                                        onChange={(e) => setFormData({ ...formData, oversizedItems: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Oversized items (hot tubs, pianos, etc.)</span>
+                                </div>
+                            </div>
+
+                            {formData.hazardousMaterial && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Describe Hazardous Materials</label>
+                                    <textarea
+                                        value={formData.hazardousDescription}
+                                        onChange={(e) => setFormData({ ...formData, hazardousDescription: e.target.value })}
+                                        rows={2}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Paint, chemicals, asbestos, etc."
+                                    />
+                                </div>
+                            )}
+
+                            {formData.itemsInBags && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">What's in the bags?</label>
+                                    <textarea
+                                        value={formData.bagContents}
+                                        onChange={(e) => setFormData({ ...formData, bagContents: e.target.value })}
+                                        rows={2}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Describe contents of bags"
+                                    />
+                                </div>
+                            )}
+
+                            {formData.oversizedItems && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Describe Oversized Items</label>
+                                    <textarea
+                                        value={formData.oversizedDescription}
+                                        onChange={(e) => setFormData({ ...formData, oversizedDescription: e.target.value })}
+                                        rows={2}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Hot tubs, pianos, mattresses, etc."
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Safety & Hazards */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <AlertCircle className="w-5 h-5 mr-2" />
+                            Safety & Hazards
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.hasMold}
+                                    onChange={(e) => setFormData({ ...formData, hasMold: e.target.checked })}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Mold present</span>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.hasPests}
+                                    onChange={(e) => setFormData({ ...formData, hasPests: e.target.checked })}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Pests present</span>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.hasSharpObjects}
+                                    onChange={(e) => setFormData({ ...formData, hasSharpObjects: e.target.checked })}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Sharp objects present</span>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.heavyLiftingRequired}
+                                    onChange={(e) => setFormData({ ...formData, heavyLiftingRequired: e.target.checked })}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Heavy lifting required (100+ lbs)</span>
+                            </div>
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.disassemblyRequired}
+                                    onChange={(e) => setFormData({ ...formData, disassemblyRequired: e.target.checked })}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">Disassembly required</span>
+                            </div>
+                        </div>
+
+                        {formData.disassemblyRequired && (
+                            <div className="mt-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">What needs disassembly?</label>
+                                <textarea
+                                    value={formData.disassemblyDescription}
+                                    onChange={(e) => setFormData({ ...formData, disassemblyDescription: e.target.value })}
+                                    rows={2}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Swing set, trampoline, shed, etc."
+                                />
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Customer Notes & Additional Services */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <FileText className="w-5 h-5 mr-2" />
+                            Additional Information & Services
+                        </h3>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
+                                <textarea
+                                    value={formData.additionalNotes}
+                                    onChange={(e) => setFormData({ ...formData, additionalNotes: e.target.value })}
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Anything else we should know about your project?"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.requestDonationPickup}
+                                        onChange={(e) => setFormData({ ...formData, requestDonationPickup: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Request donation pickup for good items</span>
+                                </div>
+                                <div className="flex items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.requestDemolition}
+                                        onChange={(e) => setFormData({ ...formData, requestDemolition: e.target.checked })}
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700">Request demolition add-on</span>
+                                </div>
+                            </div>
+
+                            {formData.requestDemolition && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">What needs demolition?</label>
+                                    <textarea
+                                        value={formData.demolitionDescription}
+                                        onChange={(e) => setFormData({ ...formData, demolitionDescription: e.target.value })}
+                                        rows={2}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        placeholder="Shed, deck, fence, etc."
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Follow-up & Priority */}
+                    <div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                            <Info className="w-5 h-5 mr-2" />
+                            Follow-up & Priority
+                        </h3>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">How did you hear about us?</label>
+                                <select
+                                    value={formData.howDidYouHear}
+                                    onChange={(e) => setFormData({ ...formData, howDidYouHear: e.target.value })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="">Select option</option>
+                                    {howDidYouHearOptions.map(option => (
+                                        <option key={option} value={option}>{option}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Request Priority</label>
+                                <select
+                                    value={formData.priority}
+                                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'standard' | 'urgent' })}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                                    <option value="standard">Standard Request</option>
+                                    <option value="urgent">Urgent/Same Day</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Final Confirmation */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-start">
+                            <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-2" />
+                            <div>
+                                <h4 className="font-medium text-blue-900">Important Information</h4>
+                                <p className="text-sm text-blue-700 mt-1">
+                                    This is a request for a quote, not an instant booking. We'll review your request and send you a custom quote within 24 hours.
+                                    Final scheduling will be confirmed after quote approval.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center">
+                        <input
+                            type="checkbox"
+                            required
+                            checked={formData.understandPricing}
+                            onChange={(e) => setFormData({ ...formData, understandPricing: e.target.checked })}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">
+                            I understand that final pricing will be provided after review of my request *
+                        </span>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 pt-6 border-t">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            Submit Request for Quote
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };

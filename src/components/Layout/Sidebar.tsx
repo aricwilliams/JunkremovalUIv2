@@ -39,12 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: Briefcase,
       badge: jobs.filter(j => j.status === 'scheduled' || j.status === 'in-progress').length
     },
-    {
-      id: 'bookings',
-      label: 'Bookings',
-      icon: CheckCircle,
-      badge: jobs.filter(j => j.status === 'scheduled').length
-    },
+
     {
       id: 'calendar',
       label: 'Calendar',
