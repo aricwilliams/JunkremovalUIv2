@@ -72,35 +72,35 @@ const CalendarView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-        <button 
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar</h1>
+        <button
           onClick={handleAddJob}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+          className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center sm:justify-start space-x-2 text-sm sm:text-base"
         >
           <Plus className="w-4 h-4" />
           <span>Add Job</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Calendar */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 border-b">
+            <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border-b">
               <button
                 onClick={() => navigateMonth('prev')}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
                 <ChevronLeft className="w-5 h-5 text-gray-600" />
               </button>
-              
-              <h2 className="text-lg font-semibold text-gray-900">
+
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 text-center">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
               </h2>
-              
+
               <button
                 onClick={() => navigateMonth('next')}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -110,21 +110,21 @@ const CalendarView: React.FC = () => {
             </div>
 
             {/* Calendar Grid */}
-            <div className="p-4">
+            <div className="p-2 sm:p-4">
               {/* Day Headers */}
-              <div className="grid grid-cols-7 gap-1 mb-2">
+              <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-3 sm:mb-4">
                 {dayNames.map(day => (
-                  <div key={day} className="p-2 text-center text-sm font-medium text-gray-500">
+                  <div key={day} className="p-2 text-center text-xs sm:text-sm font-medium text-gray-500">
                     {day}
                   </div>
                 ))}
               </div>
 
               {/* Calendar Days */}
-              <div className="grid grid-cols-7 gap-1">
+              <div className="grid grid-cols-7 gap-2 sm:gap-3">
                 {/* Empty cells for days before month starts */}
                 {emptyDays.map(day => (
-                  <div key={`empty-${day}`} className="p-2 h-24"></div>
+                  <div key={`empty-${day}`} className="p-1 sm:p-2 h-20 sm:h-24"></div>
                 ))}
 
                 {/* Days of the month */}
@@ -137,27 +137,26 @@ const CalendarView: React.FC = () => {
                   return (
                     <div
                       key={day}
-                      className={`p-2 h-24 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
-                        isToday ? 'bg-blue-50 border-blue-200' : ''
-                      } ${isSelected ? 'bg-blue-100 border-blue-300' : ''}`}
+                      className={`p-1 sm:p-2 h-20 sm:h-24 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${isToday ? 'bg-blue-50 border-blue-200' : ''
+                        } ${isSelected ? 'bg-blue-100 border-blue-300' : ''}`}
                       onClick={() => setSelectedDate(date)}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+                        <span className={`text-xs sm:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
                           {day}
                         </span>
                         {dayJobs.length > 0 && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded">
+                          <span className="text-xs bg-blue-100 text-blue-800 px-1 rounded text-xs">
                             {dayJobs.length}
                           </span>
                         )}
                       </div>
-                      
+
                       <div className="space-y-1">
                         {dayJobs.slice(0, 2).map(job => (
                           <div
                             key={job.id}
-                            className={`text-xs px-2 py-1 rounded text-white truncate cursor-pointer ${getStatusColor(job.status)}`}
+                            className={`text-xs px-1 sm:px-2 py-1 rounded text-white truncate cursor-pointer ${getStatusColor(job.status)}`}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleJobClick(job);
@@ -182,19 +181,19 @@ const CalendarView: React.FC = () => {
 
         {/* Job Details Panel */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-4 border-b">
-            <h3 className="text-lg font-semibold text-gray-900">
+          <div className="p-3 sm:p-4 border-b">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
               {selectedDate ? selectedDate.toLocaleDateString() : 'Select a date'}
             </h3>
           </div>
 
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             {selectedDateJobs.length > 0 ? (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {selectedDateJobs.map(job => (
-                  <div key={job.id} className="border border-gray-200 rounded-lg p-4">
+                  <div key={job.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{job.customerName}</h4>
+                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">{job.customerName}</h4>
                       <div className="flex items-center space-x-2">
                         <span className={`px-2 py-1 text-xs rounded-full text-white ${getStatusColor(job.status)}`}>
                           {job.status}
@@ -207,18 +206,18 @@ const CalendarView: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                    
-                    <div className="space-y-2 text-sm text-gray-600">
+
+                    <div className="space-y-2 text-xs sm:text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
                         <Clock className="w-4 h-4" />
                         <span>{job.timeSlot}</span>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <MapPin className="w-4 h-4" />
-                        <span>{job.address}, {job.city}</span>
+                        <span className="truncate">{job.address}, {job.city}</span>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         <DollarSign className="w-4 h-4" />
                         <span>${job.totalEstimate}</span>
@@ -226,7 +225,7 @@ const CalendarView: React.FC = () => {
                     </div>
 
                     <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         Items: {job.items.map(item => item.name).join(', ')}
                       </p>
                     </div>
@@ -234,7 +233,7 @@ const CalendarView: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
                 {selectedDate ? 'No jobs scheduled for this date' : 'Select a date to view jobs'}
               </div>
             )}
