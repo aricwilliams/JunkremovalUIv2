@@ -132,23 +132,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         <nav className="p-4">
           {/* Quick Stats */}
           <div className="mb-6 space-y-2">
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-800">Today's Revenue</span>
-                <DollarSign className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <img
+                  src="http://junkremovalappplanner.com/logo.png"
+                  alt="Junk Removal App Planner Logo"
+                  style={{ width: '192px' }}
+                />
+
               </div>
-              <p className="text-lg font-bold text-blue-900">${analytics.totalRevenue.toLocaleString()}</p>
             </div>
 
-            <div className="bg-orange-50 p-3 rounded-lg">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-orange-800">Pending Jobs</span>
-                <Clock className="w-4 h-4 text-orange-600" />
-              </div>
-              <p className="text-lg font-bold text-orange-900">
-                {jobs.filter(j => j.status === 'scheduled').length}
-              </p>
-            </div>
           </div>
 
           {/* Menu Items */}

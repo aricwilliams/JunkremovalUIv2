@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, Menu, Bell, User } from 'lucide-react';
+import { Menu, Bell, User, Clock, DollarSign } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 
 interface HeaderProps {
@@ -7,7 +7,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
-  const { currentView } = useApp();
+  const { currentView, jobs, analytics } = useApp();
 
   const getViewTitle = () => {
     switch (currentView) {
@@ -33,15 +33,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           >
             <Menu className="w-5 h-5 text-gray-600" />
           </button>
-          
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center space-x-2">
-              <Truck className="w-8 h-8 text-blue-600" />
-              <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-gray-900">TarheelJunkCRM</h1>
-                <p className="text-sm text-gray-500">{getViewTitle()}</p>
-              </div>
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-800">Today's Revenue</span>
+              <DollarSign className="w-4 h-4 text-blue-600" />
             </div>
+            <p className="text-lg font-bold text-blue-900">${analytics.totalRevenue.toLocaleString()}</p>
+          </div>
+
+          <div className="bg-orange-50 p-3 rounded-lg">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-orange-800">Pending Jobs</span>
+              <Clock className="w-4 h-4 text-orange-600" />
+            </div>
+            <p className="text-lg font-bold text-orange-900">
+              {jobs.filter(j => j.status === 'scheduled').length}
+            </p>
           </div>
         </div>
 
@@ -52,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
               3
             </span>
           </button>
-          
+
           <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2">
             <User className="w-4 h-4 text-gray-600" />
             <span className="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
