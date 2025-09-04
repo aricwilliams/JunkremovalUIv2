@@ -1,19 +1,25 @@
 export interface Customer {
-  id: string;
+  id: number;
+  business_id: number;
   name: string;
   email: string;
   phone: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
-  created: Date;
-  status: 'new' | 'quoted' | 'scheduled' | 'completed';
-  tags: string[];
-  notes: string;
+  zip_code: string;
+  customer_type: 'residential' | 'commercial' | 'industrial' | 'government';
+  status: 'new' | 'quoted' | 'scheduled' | 'completed' | 'inactive' | 'blacklisted';
+  created_at: string;
+  updated_at: string;
+  // Legacy fields for backward compatibility
+  zipCode?: string;
+  created?: Date;
+  tags?: string[];
+  notes?: string;
   propertyManagerId?: string;
-  paymentTerms: 'immediate' | 'net15' | 'net30' | 'net60';
-  isCommercial: boolean;
+  paymentTerms?: 'immediate' | 'net15' | 'net30' | 'net60';
+  isCommercial?: boolean;
   portalAccess?: boolean;
   portalCredentials?: {
     username: string;
@@ -304,34 +310,69 @@ export interface InvoiceItem {
 }
 
 export interface Job {
-  id: string;
-  customerId: string;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  id: number;
+  business_id: number;
+  customer_id: number;
+  estimate_id?: number;
+  assigned_employee_id?: number;
+  title: string;
+  description?: string;
+  scheduled_date: string;
+  completion_date?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  total_cost?: number;
+  created_at: string;
+  updated_at: string;
+  customer?: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    zip_code: string;
+  };
+  employee?: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    job_title: string;
+  };
+  estimate?: {
+    id: number;
+    title: string;
+    amount: number;
+    status: string;
+  };
+  // Legacy fields for backward compatibility
+  customerId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
   latitude?: number;
   longitude?: number;
-  scheduledDate: Date;
-  timeSlot: string;
-  estimatedHours: number;
-  items: JobItem[];
-  status: 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  scheduledDate?: Date;
+  timeSlot?: string;
+  estimatedHours?: number;
+  items?: JobItem[];
   crewId?: string;
   truckId?: string;
-  totalEstimate: number;
+  totalEstimate?: number;
   actualTotal?: number;
-  notes: string;
-  beforePhotos: string[];
-  afterPhotos: string[];
-  created: Date;
-  updated: Date;
-  estimateId?: string;
+  notes?: string;
+  beforePhotos?: string[];
+  afterPhotos?: string[];
+  created?: Date;
+  updated?: Date;
   propertyManagerId?: string;
-  volume: {
+  volume?: {
     weight: number;
     yardage: number;
   };

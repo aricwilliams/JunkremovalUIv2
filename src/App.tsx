@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './contexts/AppContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
 import DashboardView from './components/Dashboard/DashboardView';
 import JobsView from './components/Jobs/JobsView';
-
 import CalendarView from './components/Calendar/CalendarView';
 import CustomersView from './components/Customers/CustomersView';
 import LeadsView from './components/Leads/LeadsView';
@@ -14,9 +14,11 @@ import SettingsView from './components/Settings/SettingsView';
 import TrucksView from './components/Fleet/TrucksView';
 import EmployeesView from './components/Employees/EmployeesView';
 import ClientPortal from './components/Portal/ClientPortal';
+import AuthPage from './components/Auth/AuthPage';
 
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
+  const { isAuthenticated, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const renderCurrentView = () => {
@@ -25,7 +27,6 @@ const AppContent: React.FC = () => {
         return <DashboardView />;
       case 'jobs':
         return <JobsView />;
-
       case 'calendar':
         return <CalendarView />;
       case 'customers':
@@ -49,6 +50,27 @@ const AppContent: React.FC = () => {
     }
   };
 
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, show auth page
+  if (!isAuthenticated) {
+    return <AuthPage onLoginSuccess={() => {
+      // Login success is handled by AuthContext automatically
+      // The tokens are stored in localStorage and will be picked up on next render
+    }} />;
+  }
+
+  // If authenticated, show main app
   return (
     <div className="flex h-screen bg-gray-50">
       <Sidebar
@@ -69,9 +91,11 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <AuthProvider>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </AuthProvider>
   );
 }
 

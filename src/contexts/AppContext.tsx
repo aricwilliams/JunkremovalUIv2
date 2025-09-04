@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Customer, Job, Lead, Crew, PricingItem, Analytics } from '../types';
 import { generateMockData } from '../utils/mockData';
+import { jobsService } from '../services/jobsService';
+import { useAuth } from './AuthContext';
 
 interface AppContextType {
   customers: Customer[];
@@ -17,6 +19,9 @@ interface AppContextType {
   updateJob: (id: string, updates: Partial<Job>) => void;
   updateLead: (id: string, updates: Partial<Lead>) => void;
   convertLeadToCustomer: (leadId: string) => void;
+  loading: boolean;
+  error: string | null;
+  refreshJobs: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -34,6 +39,7 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -50,16 +56,63 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     topServices: []
   });
   const [currentView, setCurrentView] = useState('dashboard');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load jobs from API when authenticated
+  const loadJobs = async () => {
+    if (!isAuthenticated || !user) {
+      console.log('🚫 Not authenticated or no user, skipping API call');
+      return;
+    }
+    
+    console.log('🔄 Loading jobs from API...');
+    console.log('User:', user);
+    console.log('Is authenticated:', isAuthenticated);
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const response = await jobsService.getJobs();
+      console.log('📊 API Response received:', response);
+      
+      if (response.success && response.data && response.data.jobs) {
+        const transformedJobs = response.data.jobs.map(job => 
+          jobsService.transformJobForLegacyComponents(job)
+        );
+        console.log('✅ Setting jobs from API:', transformedJobs.length, 'jobs');
+        setJobs(transformedJobs);
+      } else {
+        console.warn('⚠️ Invalid API response format:', response);
+        throw new Error('Invalid API response format');
+      }
+    } catch (err: any) {
+      console.error('❌ Failed to load jobs from API:', err);
+      setError(err.message);
+      // Fallback to mock data if API fails
+      console.log('🔄 Falling back to mock data...');
+      const mockData = generateMockData();
+      setJobs(mockData.jobs);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const mockData = generateMockData();
-    setCustomers(mockData.customers);
-    setJobs(mockData.jobs);
-    setLeads(mockData.leads);
-    setCrews(mockData.crews);
-    setPricingItems(mockData.pricingItems);
-    setAnalytics(mockData.analytics);
-  }, []);
+    if (isAuthenticated) {
+      loadJobs();
+    } else {
+      // Use mock data when not authenticated
+      const mockData = generateMockData();
+      setCustomers(mockData.customers);
+      setJobs(mockData.jobs);
+      setLeads(mockData.leads);
+      setCrews(mockData.crews);
+      setPricingItems(mockData.pricingItems);
+      setAnalytics(mockData.analytics);
+    }
+  }, [isAuthenticated, user]);
 
   const addCustomer = (customerData: Omit<Customer, 'id' | 'created'>) => {
     const newCustomer: Customer = {
@@ -89,10 +142,36 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setLeads(prev => [...prev, newLead]);
   };
 
-  const updateJob = (id: string, updates: Partial<Job>) => {
-    setJobs(prev => prev.map(job => 
-      job.id === id ? { ...job, ...updates, updated: new Date() } : job
-    ));
+  const updateJob = async (id: string, updates: Partial<Job>) => {
+    try {
+      // Update via API if authenticated
+      if (isAuthenticated) {
+        const jobId = parseInt(id);
+        const apiUpdates: any = {};
+        
+        // Map legacy fields to API fields
+        if (updates.status) apiUpdates.status = updates.status;
+        if (updates.totalEstimate) apiUpdates.total_cost = updates.totalEstimate;
+        if (updates.notes) apiUpdates.description = updates.notes;
+        
+        await jobsService.updateJob(jobId, apiUpdates);
+        
+        // Refresh jobs from API
+        await loadJobs();
+      } else {
+        // Update locally if not authenticated
+        setJobs(prev => prev.map(job => 
+          job.id === id ? { ...job, ...updates, updated: new Date() } : job
+        ));
+      }
+    } catch (err: any) {
+      console.error('Failed to update job:', err);
+      setError(err.message);
+    }
+  };
+
+  const refreshJobs = async () => {
+    await loadJobs();
   };
 
   const updateLead = (id: string, updates: Partial<Lead>) => {
@@ -139,6 +218,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       updateJob,
       updateLead,
       convertLeadToCustomer,
+      loading,
+      error,
+      refreshJobs,
     }}>
       {children}
     </AppContext.Provider>

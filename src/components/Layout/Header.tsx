@@ -1,6 +1,7 @@
 import React from 'react';
-import { Menu, Bell, User, Clock, DollarSign } from 'lucide-react';
+import { Menu, Bell, User, Clock, DollarSign, LogOut } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -8,6 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   const { currentView, jobs, analytics } = useApp();
+  const { user, logout } = useAuth();
 
   const getViewTitle = () => {
     switch (currentView) {
@@ -21,6 +23,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
       case 'settings': return 'Settings';
       default: return 'TarheelJunkCRM';
     }
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -62,8 +68,18 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
           <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2">
             <User className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
+            <span className="text-sm font-medium text-gray-700 hidden sm:block">
+              {user?.first_name || user?.username || 'User'}
+            </span>
           </div>
+
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-red-600"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </header>

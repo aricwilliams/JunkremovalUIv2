@@ -4,20 +4,28 @@ import { Job } from '../../types';
 import JobsListView from './JobsListView';
 import JobsMapView from './JobsMapView';
 import JobProgressTracker from './JobProgressTracker';
-import { Map, List, Play } from 'lucide-react';
+import JobStatsDashboard from './JobStatsDashboard';
+import CreateJobForm from './CreateJobForm';
+import { Map, List, Play, Plus, BarChart3 } from 'lucide-react';
 
 const JobsView: React.FC = () => {
-  const { jobs, updateJob } = useApp();
-  const [viewMode, setViewMode] = useState<'list' | 'map' | 'progress'>('list');
+  const { jobs, updateJob, loading, error, refreshJobs, customers } = useApp();
+  const [viewMode, setViewMode] = useState<'list' | 'map' | 'progress' | 'stats'>('list');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const handleStatusUpdate = (jobId: string, newStatus: string) => {
-    updateJob(jobId, { status: newStatus as any });
+  const handleStatusUpdate = async (jobId: string, newStatus: string) => {
+    await updateJob(jobId, { status: newStatus as any });
   };
 
   const handleJobSelect = (job: Job) => {
     setSelectedJob(job);
     setViewMode('progress');
+  };
+
+  const handleJobCreated = (job: Job) => {
+    setShowCreateForm(false);
+    refreshJobs(); // Refresh the jobs list
   };
 
   return (
@@ -29,6 +37,27 @@ const JobsView: React.FC = () => {
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
+          {error && (
+            <div className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm">
+              <span>Error: {error}</span>
+              <button
+                onClick={refreshJobs}
+                className="underline hover:no-underline"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          
+          <button
+            onClick={() => setShowCreateForm(true)}
+            className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Create Job</span>
+            <span className="sm:hidden">Create</span>
+          </button>
+
           <button
             onClick={() => setViewMode('list')}
             className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${viewMode === 'list'
@@ -53,6 +82,18 @@ const JobsView: React.FC = () => {
             <span className="sm:hidden">Map</span>
           </button>
 
+          <button
+            onClick={() => setViewMode('stats')}
+            className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${viewMode === 'stats'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span className="hidden sm:inline">Statistics</span>
+            <span className="sm:hidden">Stats</span>
+          </button>
+
           {selectedJob && (
             <button
               onClick={() => setViewMode('progress')}
@@ -69,10 +110,19 @@ const JobsView: React.FC = () => {
         </div>
       </div>
 
-      {viewMode === 'list' ? (
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading jobs...</p>
+          </div>
+        </div>
+      ) : viewMode === 'list' ? (
         <JobsListView jobs={jobs} onJobSelect={handleJobSelect} />
       ) : viewMode === 'map' ? (
         <JobsMapView jobs={jobs} onJobSelect={handleJobSelect} />
+      ) : viewMode === 'stats' ? (
+        <JobStatsDashboard />
       ) : (
         selectedJob && (
           <div className="space-y-4">
@@ -91,6 +141,19 @@ const JobsView: React.FC = () => {
             />
           </div>
         )
+      )}
+
+      {showCreateForm && (
+        <CreateJobForm
+          onJobCreated={handleJobCreated}
+          onCancel={() => setShowCreateForm(false)}
+          customers={customers.map(customer => ({
+            id: typeof customer.id === 'string' ? parseInt(customer.id) : customer.id,
+            name: customer.name,
+            email: customer.email,
+            phone: customer.phone
+          }))}
+        />
       )}
     </div>
   );
