@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Customer, Job, Lead, Crew, PricingItem, Analytics } from '../types';
 import { jobsService } from '../services/jobsService';
 import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 interface AppContextType {
   customers: Customer[];
@@ -16,6 +17,7 @@ interface AppContextType {
   addJob: (job: Omit<Job, 'id' | 'created' | 'updated'>) => void;
   addLead: (lead: Omit<Lead, 'id' | 'created'>) => void;
   updateJob: (id: string, updates: Partial<Job>) => void;
+  deleteJob: (id: number) => Promise<void>;
   updateLead: (id: string, updates: Partial<Lead>) => void;
   convertLeadToCustomer: (leadId: string) => void;
   loading: boolean;
@@ -39,6 +41,7 @@ interface AppProviderProps {
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -225,19 +228,63 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         if (updates.totalEstimate) apiUpdates.total_cost = updates.totalEstimate;
         if (updates.notes) apiUpdates.description = updates.notes;
         
-        await jobsService.updateJob(jobId, apiUpdates);
+        // Optimistic update - update UI immediately
+        setJobs(prev => prev.map(job => 
+          job.id === jobId ? { ...job, ...updates, updated: new Date() } : job
+        ));
         
-        // Refresh jobs from API
-        await loadJobs();
+        // Show immediate success toast
+        showSuccess('Job Updated', 'Changes saved successfully!');
+        
+        // Then update via API in background
+        const response = await jobsService.updateJob(jobId, apiUpdates);
+        
+        // Update with the actual response from API to ensure consistency
+        if (response.success && response.data.job) {
+          setJobs(prev => prev.map(job => 
+            job.id === jobId ? { ...job, ...response.data.job } : job
+          ));
+        }
       } else {
         // Update locally if not authenticated
         setJobs(prev => prev.map(job => 
           job.id === id ? { ...job, ...updates, updated: new Date() } : job
         ));
+        showSuccess('Job Updated', 'Changes saved locally!');
       }
     } catch (err: any) {
       console.error('Failed to update job:', err);
       setError(err.message);
+      showError('Update Failed', err.message || 'Failed to update job');
+      
+      // Revert optimistic update on error
+      if (isAuthenticated) {
+        await loadJobs();
+      }
+    }
+  };
+
+  const deleteJob = async (id: number) => {
+    try {
+      // Optimistic update - remove from UI immediately
+      setJobs(prev => prev.filter(job => job.id !== id));
+      
+      // Show immediate success toast
+      showSuccess('Job Deleted', 'Job removed successfully!');
+      
+      // Then delete via API
+      if (isAuthenticated) {
+        await jobsService.deleteJob(id);
+      }
+    } catch (err: any) {
+      console.error('Failed to delete job:', err);
+      setError(err.message);
+      showError('Delete Failed', err.message || 'Failed to delete job');
+      
+      // Revert optimistic update on error
+      if (isAuthenticated) {
+        await loadJobs();
+      }
     }
   };
 
@@ -291,6 +338,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       addJob,
       addLead,
       updateJob,
+      deleteJob,
       updateLead,
       convertLeadToCustomer,
       loading,

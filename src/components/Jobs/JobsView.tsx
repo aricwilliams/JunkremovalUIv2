@@ -29,13 +29,15 @@ const JobsView: React.FC = () => {
   };
 
   const handleJobUpdated = (updatedJob: Job) => {
-    // Update the job in the local state
-    refreshJobs(); // Refresh the jobs list to get updated data
+    // The AppContext already handles optimistic updates
+    // No need to refresh - the UI will update immediately
+    console.log('✅ Job updated successfully:', updatedJob);
   };
 
   const handleJobDeleted = (jobId: number) => {
-    // Remove the job from the local state
-    refreshJobs(); // Refresh the jobs list to get updated data
+    // The AppContext already handles the deletion
+    // No need to refresh - the UI will update immediately
+    console.log('✅ Job deleted successfully:', jobId);
   };
 
   return (
