@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Customer, Job, Lead, Crew, PricingItem, Analytics } from '../types';
-import { generateMockData } from '../utils/mockData';
 import { jobsService } from '../services/jobsService';
 import { useAuth } from './AuthContext';
 
@@ -90,10 +89,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     } catch (err: any) {
       console.error('❌ Failed to load jobs from API:', err);
       setError(err.message);
-      // Fallback to mock data if API fails
-      console.log('🔄 Falling back to mock data...');
-      const mockData = generateMockData();
-      setJobs(mockData.jobs);
+      // Set empty jobs array instead of falling back to mock data
+      setJobs([]);
     } finally {
       setLoading(false);
     }
@@ -103,14 +100,22 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     if (isAuthenticated) {
       loadJobs();
     } else {
-      // Use mock data when not authenticated
-      const mockData = generateMockData();
-      setCustomers(mockData.customers);
-      setJobs(mockData.jobs);
-      setLeads(mockData.leads);
-      setCrews(mockData.crews);
-      setPricingItems(mockData.pricingItems);
-      setAnalytics(mockData.analytics);
+      // Set empty arrays when not authenticated - no mock data
+      setCustomers([]);
+      setJobs([]);
+      setLeads([]);
+      setCrews([]);
+      setPricingItems([]);
+      setAnalytics({
+        totalRevenue: 0,
+        totalJobs: 0,
+        averageJobValue: 0,
+        completionRate: 0,
+        customerSatisfaction: 0,
+        monthlyRevenue: [],
+        jobsBySource: {},
+        topServices: []
+      });
     }
   }, [isAuthenticated, user]);
 

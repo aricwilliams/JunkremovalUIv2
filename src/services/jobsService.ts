@@ -244,60 +244,8 @@ class JobsService {
   }
 
   private generateJobItems(job: Job): any[] {
-    // Generate mock job items based on job data
-    const items = [];
-    if (job.description) {
-      // Try to extract items from description
-      const description = job.description.toLowerCase();
-      if (description.includes('couch') || description.includes('sofa')) {
-        items.push({
-          id: '1',
-          name: 'Couch',
-          category: 'furniture',
-          quantity: 1,
-          basePrice: 50,
-          difficulty: 'medium',
-          estimatedTime: 30
-        });
-      }
-      if (description.includes('mattress')) {
-        items.push({
-          id: '2',
-          name: 'Mattress',
-          category: 'furniture',
-          quantity: 1,
-          basePrice: 35,
-          difficulty: 'easy',
-          estimatedTime: 15
-        });
-      }
-      if (description.includes('refrigerator') || description.includes('fridge')) {
-        items.push({
-          id: '3',
-          name: 'Refrigerator',
-          category: 'appliances',
-          quantity: 1,
-          basePrice: 75,
-          difficulty: 'hard',
-          estimatedTime: 45
-        });
-      }
-    }
-    
-    // If no items found, create a generic item
-    if (items.length === 0) {
-      items.push({
-        id: '1',
-        name: 'General Cleanout',
-        category: 'misc',
-        quantity: 1,
-        basePrice: job.total_cost || 100,
-        difficulty: 'medium',
-        estimatedTime: 60
-      });
-    }
-    
-    return items;
+    // Return empty array - items should come from API
+    return [];
   }
 }
 

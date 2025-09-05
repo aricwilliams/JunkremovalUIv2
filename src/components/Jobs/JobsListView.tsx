@@ -91,7 +91,12 @@ const JobsListView: React.FC<JobsListViewProps> = ({ jobs, onJobSelect }) => {
 
       {/* Jobs List */}
       <div className="bg-white rounded-lg shadow">
-        {filteredJobs.length === 0 ? (
+        {jobs.length === 0 ? (
+          <div className="p-6 sm:p-8 text-center text-gray-500">
+            <AlertCircle className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
+            <p className="text-sm sm:text-base">No jobs found. Create your first job to get started.</p>
+          </div>
+        ) : filteredJobs.length === 0 ? (
           <div className="p-6 sm:p-8 text-center text-gray-500">
             <AlertCircle className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 text-gray-300" />
             <p className="text-sm sm:text-base">No jobs found matching your criteria</p>

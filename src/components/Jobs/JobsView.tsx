@@ -124,7 +124,7 @@ const JobsView: React.FC = () => {
       ) : viewMode === 'stats' ? (
         <JobStatsDashboard />
       ) : (
-        selectedJob && (
+        selectedJob ? (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Job Progress Tracker</h2>
@@ -139,6 +139,18 @@ const JobsView: React.FC = () => {
               job={selectedJob}
               onStatusUpdate={handleStatusUpdate}
             />
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <Play className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p className="text-lg font-medium text-gray-500 mb-2">No Job Selected</p>
+            <p className="text-sm text-gray-400 mb-4">Select a job from the list to track its progress</p>
+            <button
+              onClick={() => setViewMode('list')}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              View Jobs List
+            </button>
           </div>
         )
       )}

@@ -319,10 +319,20 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
           </div>
         )}
 
-        <div
-          ref={mapRef}
-          className="w-full h-[calc(100vh-300px)] sm:h-[calc(100vh-200px)] rounded-lg shadow-lg"
-        ></div>
+        {jobs.length === 0 ? (
+          <div className="w-full h-[calc(100vh-300px)] sm:h-[calc(100vh-200px)] rounded-lg shadow-lg bg-gray-100 flex items-center justify-center">
+            <div className="text-center text-gray-500">
+              <MapPin className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium mb-2">No Jobs to Display</p>
+              <p className="text-sm">Create your first job to see it on the map</p>
+            </div>
+          </div>
+        ) : (
+          <div
+            ref={mapRef}
+            className="w-full h-[calc(100vh-300px)] sm:h-[calc(100vh-200px)] rounded-lg shadow-lg"
+          ></div>
+        )}
       </div>
 
       {/* Job Details Modal */}
