@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Customer, Job, Lead, Crew, PricingItem, Analytics } from '../types';
 import { jobsService } from '../services/jobsService';
+import { customersService } from '../services/customersService';
+import { estimatesService, EstimateRequest } from '../services/estimatesService';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 
@@ -10,6 +12,7 @@ interface AppContextType {
   leads: Lead[];
   crews: Crew[];
   pricingItems: PricingItem[];
+  estimates: EstimateRequest[];
   analytics: Analytics;
   currentView: string;
   setCurrentView: (view: string) => void;
@@ -23,6 +26,8 @@ interface AppContextType {
   loading: boolean;
   error: string | null;
   refreshJobs: () => Promise<void>;
+  refreshCustomers: () => Promise<void>;
+  refreshEstimates: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -47,6 +52,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [crews, setCrews] = useState<Crew[]>([]);
   const [pricingItems, setPricingItems] = useState<PricingItem[]>([]);
+  const [estimates, setEstimates] = useState<EstimateRequest[]>([]);
   const [analytics, setAnalytics] = useState<Analytics>({
     totalRevenue: 0,
     totalJobs: 0,
@@ -131,9 +137,71 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   };
 
+  // Load customers from API when authenticated
+  const loadCustomers = async () => {
+    if (!isAuthenticated || !user) {
+      console.log('🚫 Not authenticated or no user, skipping customers API call');
+      return;
+    }
+    
+    console.log('🔄 Loading customers from API...');
+    
+    try {
+      const response = await customersService.getCustomers({
+        page: 1,
+        limit: 1000, // Load all customers
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
+      
+      if (response.success && response.data && response.data.customers) {
+        console.log('✅ Setting customers from API:', response.data.customers.length, 'customers');
+        setCustomers(response.data.customers);
+      } else {
+        console.warn('⚠️ Invalid customers API response format:', response);
+        setCustomers([]);
+      }
+    } catch (err: any) {
+      console.error('❌ Failed to load customers from API:', err);
+      setCustomers([]);
+    }
+  };
+
+  // Load estimates from API when authenticated
+  const loadEstimates = async () => {
+    if (!isAuthenticated || !user) {
+      console.log('🚫 Not authenticated or no user, skipping estimates API call');
+      return;
+    }
+    
+    console.log('🔄 Loading estimates from API...');
+    
+    try {
+      const response = await estimatesService.getEstimates({
+        page: 1,
+        limit: 1000, // Load all estimates
+        sort_by: 'created_at',
+        sort_order: 'desc'
+      });
+      
+      if (response.success && response.data && response.data.estimates) {
+        console.log('✅ Setting estimates from API:', response.data.estimates.length, 'estimates');
+        setEstimates(response.data.estimates);
+      } else {
+        console.warn('⚠️ Invalid estimates API response format:', response);
+        setEstimates([]);
+      }
+    } catch (err: any) {
+      console.error('❌ Failed to load estimates from API:', err);
+      setEstimates([]);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       loadJobs();
+      loadCustomers();
+      loadEstimates();
     } else {
       // Set empty arrays when not authenticated - no mock data
       setCustomers([]);
@@ -141,6 +209,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       setLeads([]);
       setCrews([]);
       setPricingItems([]);
+      setEstimates([]);
       setAnalytics({
         totalRevenue: 0,
         totalJobs: 0,
@@ -292,6 +361,14 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     await loadJobs();
   };
 
+  const refreshCustomers = async () => {
+    await loadCustomers();
+  };
+
+  const refreshEstimates = async () => {
+    await loadEstimates();
+  };
+
   const updateLead = (id: string, updates: Partial<Lead>) => {
     setLeads(prev => prev.map(lead => 
       lead.id === id ? { ...lead, ...updates } : lead
@@ -331,6 +408,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       leads,
       crews,
       pricingItems,
+      estimates,
       analytics,
       currentView,
       setCurrentView,
@@ -344,6 +422,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       loading,
       error,
       refreshJobs,
+      refreshCustomers,
+      refreshEstimates,
     }}>
       {children}
     </AppContext.Provider>

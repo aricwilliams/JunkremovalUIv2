@@ -52,48 +52,48 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: Users,
       badge: null
     },
-    {
-      id: 'leads',
-      label: 'Leads',
-      icon: UserPlus,
-      badge: leads.filter(l => l.status === 'new').length
-    },
+    // {
+    //   id: 'leads',
+    //   label: 'Leads',
+    //   icon: UserPlus,
+    //   badge: leads.filter(l => l.status === 'new').length
+    // },
     {
       id: 'estimates',
-      label: 'Quotes',
+      label: 'Estimates',
       icon: Calculator,
       badge: null
     },
-    {
-      id: 'trucks',
-      label: 'Fleet Management',
-      icon: Truck,
-      badge: null
-    },
-    {
-      id: 'employees',
-      label: 'Employees',
-      icon: UserCheck,
-      badge: null
-    },
-    {
-      id: 'portal',
-      label: 'Client Portal',
-      icon: Building,
-      badge: null
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: BarChart3,
-      badge: null
-    },
-    {
-      id: 'settings',
-      label: 'Settings',
-      icon: Settings,
-      badge: null
-    }
+    // {
+    //   id: 'trucks',
+    //   label: 'Fleet Management',
+    //   icon: Truck,
+    //   badge: null
+    // },
+    // {
+    //   id: 'employees',
+    //   label: 'Employees',
+    //   icon: UserCheck,
+    //   badge: null
+    // },
+    // {
+    //   id: 'portal',
+    //   label: 'Client Portal',
+    //   icon: Building,
+    //   badge: null
+    // },
+    // {
+    //   id: 'analytics',
+    //   label: 'Analytics',
+    //   icon: BarChart3,
+    //   badge: null
+    // },
+    // {
+    //   id: 'settings',
+    //   label: 'Settings',
+    //   icon: Settings,
+    //   badge: null
+    // }
   ];
 
   const handleMenuClick = (viewId: string) => {

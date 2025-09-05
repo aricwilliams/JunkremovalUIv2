@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { useToast } from '../../contexts/ToastContext';
-import { customersService, Customer, CustomerFilters } from '../../services/customersService';
+import { customersService, Customer } from '../../services/customersService';
 import { 
   Users, 
   Search, 
@@ -19,18 +19,15 @@ import {
 } from 'lucide-react';
 
 const CustomersView: React.FC = () => {
-  const { setCurrentView } = useApp();
+  const { customers, setCurrentView, refreshCustomers } = useApp();
   const { showSuccess, showError } = useToast();
   
   // State management
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [customerTypeFilter, setCustomerTypeFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage] = useState(20);
   
   // Modal states
@@ -62,28 +59,30 @@ const CustomersView: React.FC = () => {
     status: 'new'
   });
 
-  // Load customers from API
+  // Filter customers based on search and filters
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         customer.phone.includes(searchTerm);
+    
+    const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
+    const matchesType = customerTypeFilter === 'all' || customer.customer_type === customerTypeFilter;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  // Paginate filtered customers
+  const totalFilteredItems = filteredCustomers.length;
+  const totalFilteredPages = Math.ceil(totalFilteredItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+
+  // Load customers from API (refresh global data)
   const loadCustomers = async (page = 1) => {
     try {
       setLoading(true);
-      const filters: CustomerFilters = {
-        page,
-        limit: itemsPerPage,
-        sort_by: 'created_at',
-        sort_order: 'desc'
-      };
-
-      if (statusFilter !== 'all') {
-        filters.status = statusFilter;
-      }
-      if (customerTypeFilter !== 'all') {
-        filters.customer_type = customerTypeFilter;
-      }
-
-      const response = await customersService.getCustomers(filters);
-      setCustomers(response.data.customers);
-      setTotalPages(response.data.pagination.total_pages);
-      setTotalItems(response.data.pagination.total_items);
+      await refreshCustomers();
       setCurrentPage(page);
     } catch (error) {
       console.error('Error loading customers:', error);
@@ -93,23 +92,11 @@ const CustomersView: React.FC = () => {
     }
   };
 
-  // Load customers on component mount and when filters change
+  // Reset pagination when filters change
   useEffect(() => {
-    loadCustomers(1);
-  }, [statusFilter, customerTypeFilter]);
+    setCurrentPage(1);
+  }, [statusFilter, customerTypeFilter, searchTerm]);
 
-  // Client-side search filtering
-  const filteredCustomers = customers.filter(customer => {
-    if (!searchTerm) return true;
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      customer.name.toLowerCase().includes(searchLower) ||
-      customer.email.toLowerCase().includes(searchLower) ||
-      customer.phone.includes(searchTerm) ||
-      customer.city.toLowerCase().includes(searchLower) ||
-      customer.state.toLowerCase().includes(searchLower)
-    );
-  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -237,7 +224,7 @@ const CustomersView: React.FC = () => {
           <Users className="w-8 h-8 text-blue-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
-            <p className="text-sm text-gray-500">{totalItems} total customers</p>
+            <p className="text-sm text-gray-500">{totalFilteredItems} customers</p>
           </div>
         </div>
         <button
@@ -307,7 +294,7 @@ const CustomersView: React.FC = () => {
       {/* Customer Cards */}
       {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCustomers.map((customer) => (
+          {paginatedCustomers.map((customer) => (
             <div key={customer.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-3">
@@ -387,25 +374,25 @@ const CustomersView: React.FC = () => {
       )}
 
       {/* Pagination */}
-      {!loading && totalPages > 1 && (
+      {!loading && totalFilteredPages > 1 && (
         <div className="flex items-center justify-between bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="text-sm text-gray-700">
-            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems} customers
+            Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, totalFilteredItems)} of {totalFilteredItems} customers
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => loadCustomers(currentPage - 1)}
+              onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
               className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             <span className="px-3 py-1 text-sm">
-              Page {currentPage} of {totalPages}
+              Page {currentPage} of {totalFilteredPages}
             </span>
             <button
-              onClick={() => loadCustomers(currentPage + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalFilteredPages}
               className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
