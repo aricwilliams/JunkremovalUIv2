@@ -61,14 +61,14 @@ const JobsView: React.FC = () => {
             </div>
           )}
           
-          <button
+          {/* <button
             onClick={() => setShowCreateForm(true)}
             className="flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
           >
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">Create Job</span>
             <span className="sm:hidden">Create</span>
-          </button>
+          </button> */}
 
           <button
             onClick={() => setViewMode('list')}

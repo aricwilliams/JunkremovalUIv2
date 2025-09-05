@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { ChevronLeft, ChevronRight, Plus, MapPin, Clock, DollarSign, Eye } from 'lucide-react';
-import JobDetailsModal from '../JobManagement/JobDetailsModal';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import JobDetailsModal from '../Jobs/JobDetailsModal';
+import CreateJobForm from '../Jobs/CreateJobForm';
 
 const CalendarView: React.FC = () => {
   const { jobs, updateJob } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedJob, setSelectedJob] = useState(null);
   const [showJobModal, setShowJobModal] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -20,7 +21,7 @@ const CalendarView: React.FC = () => {
 
   const getJobsForDate = (date: Date) => {
     return jobs.filter(job => {
-      const jobDate = new Date(job.scheduledDate);
+      const jobDate = new Date(job.scheduled_date);
       return jobDate.toDateString() === date.toDateString();
     });
   };
@@ -49,12 +50,11 @@ const CalendarView: React.FC = () => {
 
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const selectedDateJobs = selectedDate ? getJobsForDate(selectedDate) : [];
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'bg-blue-500';
-      case 'in-progress': return 'bg-orange-500';
+      case 'in_progress': return 'bg-orange-500';
       case 'completed': return 'bg-green-500';
       case 'cancelled': return 'bg-red-500';
       default: return 'bg-gray-500';
@@ -67,14 +67,25 @@ const CalendarView: React.FC = () => {
   };
 
   const handleAddJob = () => {
-    // In a real app, this would open a job creation modal
-    alert('Add Job functionality - would open booking form');
+    setShowCreateForm(true);
+  };
+
+  const handleJobCreated = () => {
+    setShowCreateForm(false);
   };
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar</h1>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar</h1>
+          <p className="text-sm text-gray-600 mt-1">
+            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()} - {jobs.filter(job => {
+              const jobDate = new Date(job.scheduled_date);
+              return jobDate.getMonth() === currentDate.getMonth() && jobDate.getFullYear() === currentDate.getFullYear();
+            }).length} jobs scheduled
+          </p>
+        </div>
         <button
           onClick={handleAddJob}
           className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center sm:justify-start space-x-2 text-sm sm:text-base"
@@ -84,9 +95,9 @@ const CalendarView: React.FC = () => {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:gap-6">
         {/* Calendar */}
-        <div className="lg:col-span-2">
+        <div>
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Calendar Header */}
             <div className="flex items-center justify-between p-3 sm:p-4 bg-gray-50 border-b">
@@ -111,6 +122,26 @@ const CalendarView: React.FC = () => {
 
             {/* Calendar Grid */}
             <div className="p-2 sm:p-4">
+              {/* Status Legend */}
+              <div className="flex flex-wrap gap-2 mb-3 sm:mb-4 text-xs">
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-blue-500 rounded"></div>
+                  <span>Scheduled</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-orange-500 rounded"></div>
+                  <span>In Progress</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span>Completed</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <span>Cancelled</span>
+                </div>
+              </div>
+
               {/* Day Headers */}
               <div className="grid grid-cols-7 gap-2 sm:gap-3 mb-3 sm:mb-4">
                 {dayNames.map(day => (
@@ -124,7 +155,7 @@ const CalendarView: React.FC = () => {
               <div className="grid grid-cols-7 gap-2 sm:gap-3">
                 {/* Empty cells for days before month starts */}
                 {emptyDays.map(day => (
-                  <div key={`empty-${day}`} className="p-1 sm:p-2 h-20 sm:h-24"></div>
+                  <div key={`empty-${day}`} className="p-1 sm:p-2 h-24 sm:h-28"></div>
                 ))}
 
                 {/* Days of the month */}
@@ -132,14 +163,11 @@ const CalendarView: React.FC = () => {
                   const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
                   const dayJobs = getJobsForDate(date);
                   const isToday = date.toDateString() === new Date().toDateString();
-                  const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
 
                   return (
                     <div
                       key={day}
-                      className={`p-1 sm:p-2 h-20 sm:h-24 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${isToday ? 'bg-blue-50 border-blue-200' : ''
-                        } ${isSelected ? 'bg-blue-100 border-blue-300' : ''}`}
-                      onClick={() => setSelectedDate(date)}
+                      className={`p-1 sm:p-2 h-24 sm:h-28 border border-gray-100 rounded-lg ${isToday ? 'bg-blue-50 border-blue-200' : ''}`}
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className={`text-xs sm:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
@@ -153,18 +181,20 @@ const CalendarView: React.FC = () => {
                       </div>
 
                       <div className="space-y-1">
-                        {dayJobs.slice(0, 2).map(job => (
-                          <div
-                            key={job.id}
-                            className={`text-xs px-1 sm:px-2 py-1 rounded text-white truncate cursor-pointer ${getStatusColor(job.status)}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleJobClick(job);
-                            }}
-                          >
-                            {job.customerName}
-                          </div>
-                        ))}
+                        {dayJobs.slice(0, 2).map(job => {
+                          const jobTime = new Date(job.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          return (
+                            <div
+                              key={job.id}
+                              className={`text-xs px-1 sm:px-2 py-1 rounded text-white truncate cursor-pointer ${getStatusColor(job.status)}`}
+                              onClick={() => handleJobClick(job)}
+                              title={`${jobTime} - ${job.title} - ${job.customer?.name || 'Unknown Customer'}`}
+                            >
+                              <div className="truncate">{job.title}</div>
+                              <div className="text-xs opacity-75">{jobTime}</div>
+                            </div>
+                          );
+                        })}
                         {dayJobs.length > 2 && (
                           <div className="text-xs text-gray-500">
                             +{dayJobs.length - 2} more
@@ -178,78 +208,32 @@ const CalendarView: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Job Details Panel */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          <div className="p-3 sm:p-4 border-b">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-              {selectedDate ? selectedDate.toLocaleDateString() : 'Select a date'}
-            </h3>
-          </div>
-
-          <div className="p-3 sm:p-4">
-            {selectedDateJobs.length > 0 ? (
-              <div className="space-y-3 sm:space-y-4">
-                {selectedDateJobs.map(job => (
-                  <div key={job.id} className="border border-gray-200 rounded-lg p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900 text-sm sm:text-base">{job.customerName}</h4>
-                      <div className="flex items-center space-x-2">
-                        <span className={`px-2 py-1 text-xs rounded-full text-white ${getStatusColor(job.status)}`}>
-                          {job.status}
-                        </span>
-                        <button
-                          onClick={() => handleJobClick(job)}
-                          className="p-1 hover:bg-gray-100 rounded transition-colors"
-                        >
-                          <Eye className="w-4 h-4 text-gray-600" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 text-xs sm:text-sm text-gray-600">
-                      <div className="flex items-center space-x-2">
-                        <Clock className="w-4 h-4" />
-                        <span>{job.timeSlot}</span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-4 h-4" />
-                        <span className="truncate">{job.address}, {job.city}</span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <DollarSign className="w-4 h-4" />
-                        <span>${job.totalEstimate}</span>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 pt-3 border-t border-gray-100">
-                      <p className="text-xs sm:text-sm text-gray-600">
-                        Items: {job.items.map(item => item.name).join(', ')}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
-                {selectedDate ? 'No jobs scheduled for this date' : 'Select a date to view jobs'}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Job Details Modal */}
       {showJobModal && selectedJob && (
         <JobDetailsModal
           job={selectedJob}
+          isOpen={showJobModal}
           onClose={() => {
             setShowJobModal(false);
             setSelectedJob(null);
           }}
-          onUpdateJob={updateJob}
+          onJobUpdated={(updatedJob) => {
+            updateJob(updatedJob.id.toString(), updatedJob);
+          }}
+          onJobDeleted={() => {
+            setShowJobModal(false);
+            setSelectedJob(null);
+          }}
+        />
+      )}
+
+      {/* Create Job Form Modal */}
+      {showCreateForm && (
+        <CreateJobForm
+          onJobCreated={handleJobCreated}
+          onCancel={() => setShowCreateForm(false)}
         />
       )}
     </div>

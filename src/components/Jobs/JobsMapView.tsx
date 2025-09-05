@@ -46,6 +46,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   const [openModal, setOpenModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<JobWithCoordinates | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [employeeFilter, setEmployeeFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
@@ -115,9 +116,28 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
     job.latitude && job.longitude
   ) as JobWithCoordinates[];
 
-  const filteredJobs = jobsWithCoordinates.filter(job =>
-    statusFilter === 'all' || job.status === statusFilter
-  );
+  // Get unique employees from jobs
+  const uniqueEmployees = jobs.reduce((acc, job) => {
+    if (job.employee && job.assigned_employee_id) {
+      const employeeKey = job.assigned_employee_id.toString();
+      if (!acc.find(emp => emp.id === employeeKey)) {
+        acc.push({
+          id: employeeKey,
+          name: `${job.employee.first_name} ${job.employee.last_name}`,
+          job_title: job.employee.job_title
+        });
+      }
+    }
+    return acc;
+  }, [] as Array<{id: string, name: string, job_title: string}>);
+
+  const filteredJobs = jobsWithCoordinates.filter(job => {
+    const statusMatch = statusFilter === 'all' || job.status === statusFilter;
+    const employeeMatch = employeeFilter === 'all' || 
+      (employeeFilter === 'unassigned' && !job.assigned_employee_id) ||
+      (employeeFilter !== 'unassigned' && job.assigned_employee_id?.toString() === employeeFilter);
+    return statusMatch && employeeMatch;
+  });
 
   const handleJobUpdated = (updatedJob: Job) => {
     if (onJobUpdated) {
@@ -160,7 +180,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
     window.open(googleMapsUrl, '_blank');
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = () => {
     // All markers are blue
     return [59, 130, 246]; // blue
   };
@@ -229,7 +249,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
               latitude: job.latitude,
             });
 
-            const color = getStatusColor(job.status);
+            const color = getStatusColor();
             const symbol = new SimpleMarkerSymbol({
               color: color,
               size: '22px',
@@ -317,7 +337,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
         });
       }
     }
-  }, [filteredJobs, statusFilter]);
+  }, [filteredJobs, statusFilter, employeeFilter]);
 
   // Effect to center map when jobs are first loaded
   useEffect(() => {
@@ -385,15 +405,44 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
               >
                 <option value="all">All Status</option>
                 <option value="scheduled">Scheduled</option>
-                <option value="in-progress">In Progress</option>
+                <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
 
-              <div className="text-xs text-gray-600">
+              <select
+                value={employeeFilter}
+                onChange={(e) => setEmployeeFilter(e.target.value)}
+                className="w-full px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              >
+                <option value="all">All Employees</option>
+                <option value="unassigned">Unassigned</option>
+                {uniqueEmployees.map(employee => (
+                  <option key={employee.id} value={employee.id}>
+                    {employee.name} ({employee.job_title})
+                  </option>
+                ))}
+              </select>
+
+              <div className="text-xs text-gray-600 space-y-1">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span>All Jobs</span>
+                  <span>
+                    {statusFilter === 'all' ? 'All Status' : 
+                     statusFilter === 'in_progress' ? 'In Progress' :
+                     statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span>
+                    {employeeFilter === 'all' ? 'All Employees' :
+                     employeeFilter === 'unassigned' ? 'Unassigned' :
+                     uniqueEmployees.find(emp => emp.id === employeeFilter)?.name || 'Unknown Employee'}
+                  </span>
+                </div>
+                <div className="text-gray-500">
+                  Showing {filteredJobs.length} of {jobsWithCoordinates.length} jobs
                 </div>
               </div>
 
@@ -462,12 +511,12 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
-                <span>{new Date(selectedJob.scheduled_date || selectedJob.scheduledDate).toLocaleDateString()}</span>
+                <span>{selectedJob.scheduled_date ? new Date(selectedJob.scheduled_date).toLocaleDateString() : 'No date'}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Clock className="w-4 h-4" />
-                <span>{selectedJob.timeSlot || new Date(selectedJob.scheduled_date || selectedJob.scheduledDate).toLocaleTimeString()}</span>
+                <span>{selectedJob.scheduled_date ? new Date(selectedJob.scheduled_date).toLocaleTimeString() : 'No time'}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
