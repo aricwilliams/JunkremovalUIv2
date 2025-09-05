@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadModules } from 'esri-loader';
 import { Job } from '../../types';
+import JobDetailsModal from './JobDetailsModal';
 import {
   Filter,
   MapPin,
@@ -16,6 +17,8 @@ import {
 interface JobsMapViewProps {
   jobs: Job[];
   onJobSelect?: (job: Job) => void;
+  onJobUpdated?: (updatedJob: Job) => void;
+  onJobDeleted?: (jobId: number) => void;
 }
 
 interface JobWithCoordinates extends Job {
@@ -30,7 +33,12 @@ declare global {
   }
 }
 
-const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
+const JobsMapView: React.FC<JobsMapViewProps> = ({ 
+  jobs, 
+  onJobSelect, 
+  onJobUpdated, 
+  onJobDeleted 
+}) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<__esri.MapView | null>(null);
   const mapRef2 = useRef<__esri.Map | null>(null);
@@ -40,25 +48,36 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
-  // Get saved map state from localStorage or use defaults
+  // Get saved map state from localStorage or use first job's coordinates
   const getSavedMapState = () => {
     try {
       const saved = localStorage.getItem('jobsMapState');
       if (saved) {
         const parsed = JSON.parse(saved);
         return {
-          center: parsed.center || [-77.9447, 34.2257],
-          zoom: parsed.zoom || 12
+          center: parsed.center || getDefaultCenter(),
+          zoom: parsed.zoom || 14
         };
       }
     } catch (error) {
       console.warn('Error loading map state from localStorage:', error);
     }
     return {
-      center: [-77.9447, 34.2257] as [number, number], // Wilmington, NC coordinates
-      zoom: 12
+      center: getDefaultCenter(),
+      zoom: 14
     };
+  };
+
+  // Get default center from first job with coordinates, fallback to Wilmington, NC
+  const getDefaultCenter = (): [number, number] => {
+    const jobsWithCoords = jobs.filter(job => job.latitude && job.longitude);
+    if (jobsWithCoords.length > 0) {
+      const firstJob = jobsWithCoords[0];
+      return [firstJob.longitude!, firstJob.latitude!];
+    }
+    return [-77.9447, 34.2257]; // Wilmington, NC coordinates as fallback
   };
 
   // Save map state to localStorage
@@ -70,11 +89,11 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
     }
   };
 
-  // Reset map to default view
+  // Reset map to default view (first job's coordinates)
   const resetMapView = () => {
     if (mapInstanceRef.current) {
-      const defaultCenter: [number, number] = [-77.9447, 34.2257]; // Wilmington, NC
-      const defaultZoom = 12;
+      const defaultCenter = getDefaultCenter();
+      const defaultZoom = 14;
 
       mapInstanceRef.current.goTo({
         center: defaultCenter,
@@ -82,17 +101,43 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
       });
 
       saveMapState(defaultCenter, defaultZoom);
+      
+      console.log('🗺️ Map reset to default view:', {
+        center: defaultCenter,
+        zoom: defaultZoom,
+        hasJobs: jobs.filter(job => job.latitude && job.longitude).length > 0
+      });
     }
   };
 
   // Filter jobs that have coordinates
   const jobsWithCoordinates = jobs.filter(job =>
-    (job as JobWithCoordinates).latitude && (job as JobWithCoordinates).longitude
+    job.latitude && job.longitude
   ) as JobWithCoordinates[];
 
   const filteredJobs = jobsWithCoordinates.filter(job =>
     statusFilter === 'all' || job.status === statusFilter
   );
+
+  const handleJobUpdated = (updatedJob: Job) => {
+    if (onJobUpdated) {
+      onJobUpdated(updatedJob);
+    }
+  };
+
+  const handleJobDeleted = (jobId: number) => {
+    if (onJobDeleted) {
+      onJobDeleted(jobId);
+    }
+    setOpenModal(false);
+    setIsDetailsModalOpen(false);
+    setSelectedJob(null);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setIsDetailsModalOpen(false);
+    setSelectedJob(null);
+  };
 
   const handleOpenModal = (job: JobWithCoordinates) => {
     setSelectedJob(job);
@@ -102,6 +147,12 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
   const handleCloseModal = () => {
     setOpenModal(false);
     setSelectedJob(null);
+  };
+
+  const handleViewDetails = (job: JobWithCoordinates) => {
+    setSelectedJob(job);
+    setOpenModal(false);
+    setIsDetailsModalOpen(true);
   };
 
   const handleGoogleMaps = (job: JobWithCoordinates) => {
@@ -244,7 +295,57 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
     if (window.updateMarkers) {
       window.updateMarkers();
     }
+    
+    // Center map on first job's coordinates if available
+    if (filteredJobs.length > 0 && mapInstanceRef.current) {
+      const firstJob = filteredJobs[0];
+      if (firstJob.latitude && firstJob.longitude) {
+        const center: [number, number] = [firstJob.longitude, firstJob.latitude];
+        const zoom = 14; // Closer zoom level to focus on the job location
+        
+        mapInstanceRef.current.goTo({
+          center: center,
+          zoom: zoom
+        });
+        
+        // Save the new map state
+        saveMapState(center, zoom);
+        
+        console.log('🗺️ Map centered on first job:', {
+          job: firstJob.customer?.name || firstJob.customerName,
+          coordinates: { lat: firstJob.latitude, lng: firstJob.longitude }
+        });
+      }
+    }
   }, [filteredJobs, statusFilter]);
+
+  // Effect to center map when jobs are first loaded
+  useEffect(() => {
+    if (jobs.length > 0 && mapInstanceRef.current && !loading) {
+      const jobsWithCoords = jobs.filter(job => job.latitude && job.longitude);
+      if (jobsWithCoords.length > 0) {
+        const firstJob = jobsWithCoords[0];
+        const center: [number, number] = [firstJob.longitude!, firstJob.latitude!];
+        const zoom = 14;
+        
+        // Only center if we haven't saved a previous state
+        const savedState = localStorage.getItem('jobsMapState');
+        if (!savedState) {
+          mapInstanceRef.current.goTo({
+            center: center,
+            zoom: zoom
+          });
+          
+          saveMapState(center, zoom);
+          
+          console.log('🗺️ Map initialized with first job coordinates:', {
+            job: firstJob.customer?.name || firstJob.customerName,
+            coordinates: { lat: firstJob.latitude, lng: firstJob.longitude }
+          });
+        }
+      }
+    }
+  }, [jobs, loading]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -341,7 +442,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
           <div className="bg-white rounded-lg max-w-sm sm:max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                {selectedJob.customerName}
+                {selectedJob.customer?.name || selectedJob.customerName || 'Unknown Customer'}
               </h3>
               <button
                 onClick={handleCloseModal}
@@ -354,32 +455,34 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
             <div className="space-y-2 sm:space-y-3">
               <div className="flex items-start space-x-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                <span className="break-words">{selectedJob.address}, {selectedJob.city}, {selectedJob.state}</span>
+                <span className="break-words">
+                  {selectedJob.customer?.address || selectedJob.address || 'N/A'}, {selectedJob.customer?.city || selectedJob.city || 'N/A'}, {selectedJob.customer?.state || selectedJob.state || 'N/A'}
+                </span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
-                <span>{new Date(selectedJob.scheduledDate).toLocaleDateString()}</span>
+                <span>{new Date(selectedJob.scheduled_date || selectedJob.scheduledDate).toLocaleDateString()}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Clock className="w-4 h-4" />
-                <span>{selectedJob.timeSlot}</span>
+                <span>{selectedJob.timeSlot || new Date(selectedJob.scheduled_date || selectedJob.scheduledDate).toLocaleTimeString()}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <DollarSign className="w-4 h-4" />
-                <span>${selectedJob.totalEstimate.toLocaleString()}</span>
+                <span>${(selectedJob.total_cost || selectedJob.totalEstimate || 0).toLocaleString()}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <span className="capitalize">{selectedJob.status.replace('-', ' ')}</span>
               </div>
 
-              {selectedJob.notes && (
+              {(selectedJob.description || selectedJob.notes) && (
                 <div className="text-sm text-gray-600">
                   <p className="font-medium mb-1">Notes:</p>
-                  <p className="break-words">{selectedJob.notes}</p>
+                  <p className="break-words">{selectedJob.description || selectedJob.notes}</p>
                 </div>
               )}
 
@@ -390,6 +493,12 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
                 >
                   <ExternalLink className="w-4 h-4" />
                   <span>Open in Google Maps</span>
+                </button>
+                <button
+                  onClick={() => handleViewDetails(selectedJob)}
+                  className="flex-1 flex items-center justify-center space-x-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                >
+                  <span>View Details</span>
                 </button>
                 {onJobSelect && (
                   <button
@@ -407,6 +516,17 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({ jobs, onJobSelect }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Job Details Modal */}
+      {selectedJob && (
+        <JobDetailsModal
+          job={selectedJob}
+          isOpen={isDetailsModalOpen}
+          onClose={handleCloseDetailsModal}
+          onJobUpdated={handleJobUpdated}
+          onJobDeleted={handleJobDeleted}
+        />
       )}
     </div>
   );

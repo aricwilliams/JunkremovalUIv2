@@ -52,7 +52,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     customerSatisfaction: 0,
     monthlyRevenue: [],
     jobsBySource: {},
-    topServices: []
+    topServices: [],
+    estimatesStats: {
+      total: 0,
+      sent: 0,
+      accepted: 0,
+      pending: 0,
+      expired: 0
+    },
+    recurringPickups: {
+      total: 0,
+      active: 0,
+      revenue: 0
+    },
+    overdueInvoices: {
+      count: 0,
+      amount: 0
+    },
+    fleetStats: {
+      totalTrucks: 0,
+      availableTrucks: 0,
+      inUseTrucks: 0,
+      maintenanceTrucks: 0
+    },
+    employeeStats: {
+      totalEmployees: 0,
+      activeEmployees: 0,
+      onLeaveEmployees: 0,
+      averageRating: 0
+    },
+    portalStats: {
+      totalUsers: 0,
+      activeUsers: 0,
+      totalRequests: 0,
+      pendingRequests: 0
+    }
   });
   const [currentView, setCurrentView] = useState('dashboard');
   const [loading, setLoading] = useState(false);
@@ -65,7 +99,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       return;
     }
     
-    console.log('🔄 Loading jobs from API...');
+    console.log('🔄 Loading jobs from API with coordinates...');
     console.log('User:', user);
     console.log('Is authenticated:', isAuthenticated);
     
@@ -73,15 +107,13 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setError(null);
     
     try {
-      const response = await jobsService.getJobs();
-      console.log('📊 API Response received:', response);
+      // Use the new method that includes coordinate fetching
+      const response = await jobsService.getJobsWithCoordinates();
+      console.log('📊 API Response with coordinates received:', response);
       
       if (response.success && response.data && response.data.jobs) {
-        const transformedJobs = response.data.jobs.map(job => 
-          jobsService.transformJobForLegacyComponents(job)
-        );
-        console.log('✅ Setting jobs from API:', transformedJobs.length, 'jobs');
-        setJobs(transformedJobs);
+        console.log('✅ Setting jobs from API with coordinates:', response.data.jobs.length, 'jobs');
+        setJobs(response.data.jobs);
       } else {
         console.warn('⚠️ Invalid API response format:', response);
         throw new Error('Invalid API response format');
@@ -114,7 +146,41 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         customerSatisfaction: 0,
         monthlyRevenue: [],
         jobsBySource: {},
-        topServices: []
+        topServices: [],
+        estimatesStats: {
+          total: 0,
+          sent: 0,
+          accepted: 0,
+          pending: 0,
+          expired: 0
+        },
+        recurringPickups: {
+          total: 0,
+          active: 0,
+          revenue: 0
+        },
+        overdueInvoices: {
+          count: 0,
+          amount: 0
+        },
+        fleetStats: {
+          totalTrucks: 0,
+          availableTrucks: 0,
+          inUseTrucks: 0,
+          maintenanceTrucks: 0
+        },
+        employeeStats: {
+          totalEmployees: 0,
+          activeEmployees: 0,
+          onLeaveEmployees: 0,
+          averageRating: 0
+        },
+        portalStats: {
+          totalUsers: 0,
+          activeUsers: 0,
+          totalRequests: 0,
+          pendingRequests: 0
+        }
       });
     }
   }, [isAuthenticated, user]);
@@ -122,7 +188,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const addCustomer = (customerData: Omit<Customer, 'id' | 'created'>) => {
     const newCustomer: Customer = {
       ...customerData,
-      id: Date.now().toString(),
+      id: Date.now(),
       created: new Date(),
     };
     setCustomers(prev => [...prev, newCustomer]);
@@ -131,7 +197,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const addJob = (jobData: Omit<Job, 'id' | 'created' | 'updated'>) => {
     const newJob: Job = {
       ...jobData,
-      id: Date.now().toString(),
+      id: Date.now(),
       created: new Date(),
       updated: new Date(),
     };
@@ -147,11 +213,11 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     setLeads(prev => [...prev, newLead]);
   };
 
-  const updateJob = async (id: string, updates: Partial<Job>) => {
+  const updateJob = async (id: string | number, updates: Partial<Job>) => {
     try {
       // Update via API if authenticated
       if (isAuthenticated) {
-        const jobId = parseInt(id);
+        const jobId = typeof id === 'string' ? parseInt(id) : id;
         const apiUpdates: any = {};
         
         // Map legacy fields to API fields
@@ -189,16 +255,20 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     const lead = leads.find(l => l.id === leadId);
     if (lead) {
       const newCustomer: Customer = {
-        id: Date.now().toString(),
+        id: Date.now(),
+        business_id: 1, // Default business ID
         name: lead.name,
         email: lead.email,
         phone: lead.phone,
         address: lead.address,
         city: '',
         state: '',
-        zipCode: '',
-        created: new Date(),
+        zip_code: '',
+        customer_type: 'residential',
         status: 'new',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        created: new Date(),
         tags: [],
         notes: lead.notes,
       };

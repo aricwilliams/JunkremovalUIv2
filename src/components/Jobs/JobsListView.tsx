@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Job } from '../../types';
+import JobDetailsModal from './JobDetailsModal';
 import {
   Calendar,
   MapPin,
@@ -8,29 +9,67 @@ import {
   CheckCircle,
   AlertCircle,
   Play,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 
 interface JobsListViewProps {
   jobs: Job[];
   onJobSelect?: (job: Job) => void;
+  onJobUpdated?: (updatedJob: Job) => void;
+  onJobDeleted?: (jobId: number) => void;
 }
 
-const JobsListView: React.FC<JobsListViewProps> = ({ jobs, onJobSelect }) => {
+const JobsListView: React.FC<JobsListViewProps> = ({ 
+  jobs, 
+  onJobSelect, 
+  onJobUpdated, 
+  onJobDeleted 
+}) => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
       const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
+      const customerName = job.customer?.name || job.customerName || 'Unknown Customer';
+      const address = job.customer?.address || job.address || '';
+      const city = job.customer?.city || job.city || '';
+      
       const matchesSearch =
-        job.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.city.toLowerCase().includes(searchTerm.toLowerCase());
+        customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        city.toLowerCase().includes(searchTerm.toLowerCase());
 
       return matchesStatus && matchesSearch;
     });
   }, [jobs, statusFilter, searchTerm]);
+
+  const handleJobClick = (job: Job) => {
+    setSelectedJob(job);
+    setIsModalOpen(true);
+  };
+
+  const handleJobUpdated = (updatedJob: Job) => {
+    if (onJobUpdated) {
+      onJobUpdated(updatedJob);
+    }
+  };
+
+  const handleJobDeleted = (jobId: number) => {
+    if (onJobDeleted) {
+      onJobDeleted(jobId);
+    }
+    setIsModalOpen(false);
+    setSelectedJob(null);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedJob(null);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -106,10 +145,10 @@ const JobsListView: React.FC<JobsListViewProps> = ({ jobs, onJobSelect }) => {
             {filteredJobs.map((job) => (
               <div key={job.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
-                  <div className="flex-1">
+                  <div className="flex-1 cursor-pointer" onClick={() => handleJobClick(job)}>
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                        {job.customerName}
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
+                        {job.customer?.name || job.customerName || 'Unknown Customer'}
                       </h3>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
                         {getStatusIcon(job.status)}
@@ -120,45 +159,56 @@ const JobsListView: React.FC<JobsListViewProps> = ({ jobs, onJobSelect }) => {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-6 text-sm text-gray-600">
                       <div className="flex items-center space-x-1">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">{job.address}, {job.city}, {job.state}</span>
+                        <span className="truncate">
+                          {job.customer?.address || job.address || 'N/A'}, {job.customer?.city || job.city || 'N/A'}, {job.customer?.state || job.state || 'N/A'}
+                        </span>
                       </div>
 
                       <div className="flex items-center space-x-1">
                         <Calendar className="w-4 h-4 flex-shrink-0" />
-                        <span>{new Date(job.scheduledDate).toLocaleDateString()}</span>
+                        <span>{new Date(job.scheduled_date || job.scheduledDate).toLocaleDateString()}</span>
                       </div>
 
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4 flex-shrink-0" />
-                        <span>{job.timeSlot}</span>
+                        <span>{job.timeSlot || new Date(job.scheduled_date || job.scheduledDate).toLocaleTimeString()}</span>
                       </div>
 
                       <div className="flex items-center space-x-1">
                         <DollarSign className="w-4 h-4 flex-shrink-0" />
-                        <span>${job.totalEstimate.toLocaleString()}</span>
+                        <span>${(job.total_cost || job.totalEstimate || 0).toLocaleString()}</span>
                       </div>
                     </div>
 
-                    {job.notes && (
+                    {(job.description || job.notes) && (
                       <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-                        {job.notes}
+                        {job.description || job.notes}
                       </p>
                     )}
                   </div>
 
                   <div className="flex flex-col sm:flex-col-reverse sm:items-end space-y-2 sm:space-y-0">
                     <div className="flex flex-col sm:items-end text-sm text-gray-500 space-y-1">
-                      <div>{job.items.length} items</div>
-                      <div>{job.estimatedHours}h estimated</div>
+                      <div>{job.items?.length || 0} items</div>
+                      <div>{job.estimatedHours || 2}h estimated</div>
                     </div>
-                    {onJobSelect && (
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                       <button
-                        onClick={() => onJobSelect(job)}
-                        className="w-full sm:w-auto px-3 py-1.5 sm:py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                        onClick={() => handleJobClick(job)}
+                        className="w-full sm:w-auto px-3 py-1.5 sm:py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors flex items-center justify-center space-x-1"
                       >
-                        Track Progress
+                        <Eye className="w-3 h-3" />
+                        <span>View</span>
                       </button>
-                    )}
+                      {onJobSelect && (
+                        <button
+                          onClick={() => onJobSelect(job)}
+                          className="w-full sm:w-auto px-3 py-1.5 sm:py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Track Progress
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -166,6 +216,17 @@ const JobsListView: React.FC<JobsListViewProps> = ({ jobs, onJobSelect }) => {
           </div>
         )}
       </div>
+
+      {/* Job Details Modal */}
+      {selectedJob && (
+        <JobDetailsModal
+          job={selectedJob}
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          onJobUpdated={handleJobUpdated}
+          onJobDeleted={handleJobDeleted}
+        />
+      )}
     </div>
   );
 };

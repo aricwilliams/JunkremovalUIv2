@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Job } from '../types';
+import { coordinateService } from './coordinateService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
 
@@ -217,6 +218,65 @@ class JobsService {
         yardage: 0
       }
     };
+  }
+
+  // Enhanced method to get jobs with coordinates
+  async getJobsWithCoordinates(params?: JobsQueryParams): Promise<JobsResponse> {
+    try {
+      // First get the jobs from the API
+      const jobsResponse = await this.getJobs(params);
+      
+      // Transform jobs and add coordinates
+      const jobsWithCoords = await Promise.all(
+        jobsResponse.data.jobs.map(async (job) => {
+          const transformedJob = this.transformJobForLegacyComponents(job);
+          
+          // Get coordinates if customer address is available
+          if (job.customer?.address && job.customer?.city && job.customer?.state && job.customer?.zip_code) {
+            const address = coordinateService.formatAddressForGeocoding(
+              job.customer.address,
+              job.customer.city,
+              job.customer.state,
+              job.customer.zip_code
+            );
+            
+            const coordinates = await coordinateService.getLatLng(address);
+            if (coordinates) {
+              transformedJob.latitude = coordinates.lat;
+              transformedJob.longitude = coordinates.lng;
+            }
+          }
+          
+          return transformedJob;
+        })
+      );
+
+      return {
+        ...jobsResponse,
+        data: {
+          ...jobsResponse.data,
+          jobs: jobsWithCoords
+        }
+      };
+    } catch (error: any) {
+      console.error('Error fetching jobs with coordinates:', error);
+      throw handleApiError(error);
+    }
+  }
+
+  // Method to get coordinates for a specific job
+  async getJobCoordinates(job: Job): Promise<{ lat: number; lng: number } | null> {
+    if (job.customer?.address && job.customer?.city && job.customer?.state && job.customer?.zip_code) {
+      const address = coordinateService.formatAddressForGeocoding(
+        job.customer.address,
+        job.customer.city,
+        job.customer.state,
+        job.customer.zip_code
+      );
+      
+      return await coordinateService.getLatLng(address);
+    }
+    return null;
   }
 
   private formatTimeSlot(scheduledDate: string): string {

@@ -28,6 +28,16 @@ const JobsView: React.FC = () => {
     refreshJobs(); // Refresh the jobs list
   };
 
+  const handleJobUpdated = (updatedJob: Job) => {
+    // Update the job in the local state
+    refreshJobs(); // Refresh the jobs list to get updated data
+  };
+
+  const handleJobDeleted = (jobId: number) => {
+    // Remove the job from the local state
+    refreshJobs(); // Refresh the jobs list to get updated data
+  };
+
   return (
     <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
@@ -118,9 +128,19 @@ const JobsView: React.FC = () => {
           </div>
         </div>
       ) : viewMode === 'list' ? (
-        <JobsListView jobs={jobs} onJobSelect={handleJobSelect} />
+        <JobsListView 
+          jobs={jobs} 
+          onJobSelect={handleJobSelect}
+          onJobUpdated={handleJobUpdated}
+          onJobDeleted={handleJobDeleted}
+        />
       ) : viewMode === 'map' ? (
-        <JobsMapView jobs={jobs} onJobSelect={handleJobSelect} />
+        <JobsMapView 
+          jobs={jobs} 
+          onJobSelect={handleJobSelect}
+          onJobUpdated={handleJobUpdated}
+          onJobDeleted={handleJobDeleted}
+        />
       ) : viewMode === 'stats' ? (
         <JobStatsDashboard />
       ) : (
