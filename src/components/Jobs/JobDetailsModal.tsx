@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Job } from '../../types';
+import { Job, EstimateRequest } from '../../types';
 import { jobsService, JobItem, JobNote, StatusHistoryEntry } from '../../services/jobsService';
+import { estimatesService } from '../../services/estimatesService';
 import { useApp } from '../../contexts/AppContext';
 import { useToast } from '../../contexts/ToastContext';
 import JobItemForm from './JobItemForm';
@@ -48,11 +49,13 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'items' | 'notes' | 'history'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'items' | 'notes' | 'history' | 'estimate'>('details');
   const [items, setItems] = useState<JobItem[]>([]);
   const [notes, setNotes] = useState<JobNote[]>([]);
   const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [estimate, setEstimate] = useState<EstimateRequest | null>(null);
+  const [loadingEstimate, setLoadingEstimate] = useState(false);
   
   // Form states
   const [isItemFormOpen, setIsItemFormOpen] = useState(false);
@@ -92,8 +95,12 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
   useEffect(() => {
     if (isOpen && job.id) {
       loadDetailedJob();
+      // Load estimate data if job has an estimate_id
+      if (job.estimate_id) {
+        loadEstimateData();
+      }
     }
-  }, [isOpen, job.id]);
+  }, [isOpen, job.id, job.estimate_id]);
 
   const loadDetailedJob = async () => {
     setLoadingDetails(true);
@@ -108,6 +115,22 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
       setError('Failed to load job details');
     } finally {
       setLoadingDetails(false);
+    }
+  };
+
+  const loadEstimateData = async () => {
+    if (!job.estimate_id) return;
+    
+    setLoadingEstimate(true);
+    try {
+      const response = await estimatesService.getEstimate(job.estimate_id);
+      console.log('🔍 Estimate data:', response.data.estimate);
+      setEstimate(response.data.estimate);
+    } catch (err: any) {
+      console.error('Error loading estimate:', err);
+      // Don't show error to user, just log it - estimate might not exist
+    } finally {
+      setLoadingEstimate(false);
     }
   };
 
@@ -355,6 +378,19 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
               <History className="w-4 h-4" />
               <span>History</span>
             </button>
+            {job.estimate_id && (
+              <button
+                onClick={() => setActiveTab('estimate')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-1 ${
+                  activeTab === 'estimate'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <CheckCircle className="w-4 h-4" />
+                <span>Quote Information</span>
+              </button>
+            )}
           </nav>
         </div>
 
@@ -540,17 +576,7 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
               )}
             </div>
 
-            {/* Estimate Information */}
-            {job.estimate && (
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-medium text-blue-900 mb-2">Related Estimate</h4>
-                <div className="text-sm text-blue-800">
-                  <p><strong>Title:</strong> {job.estimate.title}</p>
-                  <p><strong>Amount:</strong> ${job.estimate.amount}</p>
-                  <p><strong>Status:</strong> {job.estimate.status}</p>
-                </div>
-              </div>
-            )}
+            
           </div>
 
                   {/* Action Buttons */}
@@ -754,6 +780,212 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Estimate Tab */}
+              {activeTab === 'estimate' && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-gray-900">Estimate Details</h3>
+                  
+                  {loadingEstimate ? (
+                    <div className="text-center py-8 text-gray-500">
+                      <Loader className="w-12 h-12 mx-auto mb-4 text-gray-300 animate-spin" />
+                      <p>Loading estimate data...</p>
+                    </div>
+                  ) : estimate ? (
+                    <div className="space-y-6">
+                      {/* Estimate Status */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-gray-900">Estimate Status</h4>
+                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            estimate.status === 'accepted' ? 'bg-green-100 text-green-800' :
+                            estimate.status === 'quoted' ? 'bg-blue-100 text-blue-800' :
+                            estimate.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                            estimate.status === 'declined' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {estimate.status.charAt(0).toUpperCase() + estimate.status.slice(1)}
+                          </span>
+                        </div>
+                        {estimate.quote_amount && (
+                          <p className="text-lg font-semibold text-gray-900">
+                            ${estimate.quote_amount.toFixed(2)}
+                          </p>
+                        )}
+                        {estimate.quote_notes && (
+                          <p className="text-sm text-gray-600 mt-1">{estimate.quote_notes}</p>
+                        )}
+                      </div>
+
+                      {/* Client Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Client Information</h4>
+                          <div className="space-y-2 text-sm">
+                            <p><span className="font-medium">Name:</span> {estimate.full_name}</p>
+                            <p><span className="font-medium">Phone:</span> {estimate.phone_number}</p>
+                            <p><span className="font-medium">Email:</span> {estimate.email_address}</p>
+                            {estimate.ok_to_text && (
+                              <p className="text-green-600">✓ OK to text updates</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Service Details</h4>
+                          <div className="space-y-2 text-sm">
+                            <p><span className="font-medium">Location:</span> {estimate.location_on_property}</p>
+                            <p><span className="font-medium">Volume:</span> {estimate.approximate_volume}</p>
+                            {estimate.preferred_date && (
+                              <p><span className="font-medium">Preferred Date:</span> {new Date(estimate.preferred_date).toLocaleDateString()}</p>
+                            )}
+                            {estimate.preferred_time && (
+                              <p><span className="font-medium">Preferred Time:</span> {estimate.preferred_time}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Service Address */}
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Service Address</h4>
+                        <p className="text-sm text-gray-600">{estimate.service_address}</p>
+                        {estimate.gate_code && (
+                          <p className="text-sm text-gray-600 mt-1"><span className="font-medium">Gate Code:</span> {estimate.gate_code}</p>
+                        )}
+                        {estimate.apartment_unit && (
+                          <p className="text-sm text-gray-600"><span className="font-medium">Unit:</span> {estimate.apartment_unit}</p>
+                        )}
+                      </div>
+
+                      {/* Material Types */}
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Material Types</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {estimate.material_types.map((material, index) => (
+                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                              {material}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Item Details */}
+                      {estimate.approximate_item_count && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Item Count</h4>
+                          <p className="text-sm text-gray-600">{estimate.approximate_item_count}</p>
+                        </div>
+                      )}
+
+                      {/* Safety & Hazards */}
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Safety & Hazards</h4>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {estimate.hazardous_materials && <p className="text-red-600">⚠️ Hazardous materials</p>}
+                          {estimate.mold_present && <p className="text-red-600">⚠️ Mold present</p>}
+                          {estimate.pests_present && <p className="text-red-600">⚠️ Pests present</p>}
+                          {estimate.sharp_objects && <p className="text-orange-600">⚠️ Sharp objects</p>}
+                          {estimate.heavy_lifting_required && <p className="text-orange-600">💪 Heavy lifting required</p>}
+                          {estimate.disassembly_required && <p className="text-blue-600">🔧 Disassembly required</p>}
+                          {estimate.items_filled_water && <p className="text-blue-600">💧 Items filled with water</p>}
+                          {estimate.items_filled_oil_fuel && <p className="text-orange-600">⛽ Items filled with oil/fuel</p>}
+                          {estimate.items_tied_bags && <p className="text-green-600">✅ Items tied in bags</p>}
+                          {estimate.oversized_items && <p className="text-purple-600">📦 Oversized items</p>}
+                        </div>
+                      </div>
+
+                      {/* Access Considerations */}
+                      {estimate.access_considerations && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Access Considerations</h4>
+                          <p className="text-sm text-gray-600">{estimate.access_considerations}</p>
+                        </div>
+                      )}
+
+                      {/* Additional Services */}
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Additional Services</h4>
+                        <div className="space-y-1 text-sm">
+                          {estimate.request_donation_pickup && <p className="text-green-600">✓ Donation pickup requested</p>}
+                          {estimate.request_demolition_addon && <p className="text-blue-600">✓ Demolition add-on requested</p>}
+                        </div>
+                      </div>
+
+                      {/* Additional Notes */}
+                      {estimate.additional_notes && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Additional Notes</h4>
+                          <p className="text-sm text-gray-600">{estimate.additional_notes}</p>
+                        </div>
+                      )}
+
+                      {/* How they heard about us */}
+                      {estimate.how_did_you_hear && (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Marketing Source</h4>
+                          <p className="text-sm text-gray-600">{estimate.how_did_you_hear}</p>
+                        </div>
+                      )}
+
+                      {/* Priority */}
+                      <div>
+                        <h4 className="font-medium text-gray-900 mb-2">Priority</h4>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          estimate.request_priority === 'urgent' ? 'bg-red-100 text-red-800' :
+                          estimate.request_priority === 'standard' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {estimate.request_priority.charAt(0).toUpperCase() + estimate.request_priority.slice(1)}
+                        </span>
+                      </div>
+
+                      {/* Media */}
+                      {(estimate.photos && estimate.photos.length > 0) || (estimate.videos && estimate.videos.length > 0) ? (
+                        <div>
+                          <h4 className="font-medium text-gray-900 mb-2">Media</h4>
+                          <div className="space-y-2">
+                            {estimate.photos && estimate.photos.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">Photos ({estimate.photos.length})</p>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {estimate.photos.map((photo, index) => (
+                                    <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                      {photo}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {estimate.videos && estimate.videos.length > 0 && (
+                              <div>
+                                <p className="text-sm font-medium text-gray-700">Videos ({estimate.videos.length})</p>
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {estimate.videos.map((video, index) => (
+                                    <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                                      {video}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Timestamps */}
+                      <div className="text-xs text-gray-500 border-t pt-4">
+                        <p>Created: {new Date(estimate.created_at).toLocaleString()}</p>
+                        <p>Updated: {new Date(estimate.updated_at).toLocaleString()}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <AlertCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p>No estimate data found.</p>
                     </div>
                   )}
                 </div>

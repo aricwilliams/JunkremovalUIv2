@@ -60,7 +60,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     },
     {
       id: 'estimates',
-      label: 'Estimates',
+      label: 'Quotes',
       icon: Calculator,
       badge: null
     },

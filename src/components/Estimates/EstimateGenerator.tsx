@@ -275,7 +275,7 @@ const EstimatesDashboard: React.FC = () => {
           <nav className="flex flex-wrap -mb-px">
             {[
               { id: 'requests', label: 'Client Requests', icon: FileText, badge: clientRequests.filter(r => r.status === 'pending').length },
-              { id: 'estimates', label: 'Estimates', icon: Calculator, badge: estimates.length },
+              { id: 'estimates', label: 'Quotes', icon: Calculator, badge: estimates.length },
               { id: 'pricing', label: 'Pricing Items', icon: DollarSign, badge: pricingItems.length }
             ].map((tab) => {
               const Icon = tab.icon;
@@ -412,7 +412,7 @@ const EstimatesDashboard: React.FC = () => {
           {activeTab === 'estimates' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Estimates</h2>
+                <h2 className="text-lg font-semibold text-gray-900">Quotes</h2>
                 <div className="flex space-x-2">
                   <select className="px-3 py-1 border border-gray-300 rounded text-sm">
                     <option value="all">All Status</option>
