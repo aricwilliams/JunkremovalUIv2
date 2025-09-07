@@ -36,7 +36,7 @@ const EstimatesDashboard: React.FC = () => {
   const [showNewRequest, setShowNewRequest] = useState(false);
 
   // Filter estimates based on quote amount
-  const requests = estimates.filter(estimate => !estimate.quote_amount || estimate.quote_amount === 0);
+  const requests = estimates.filter(estimate => !estimate.quote_amount || estimate.quote_amount === 0 || estimate.quote_amount === null);
   const quotedEstimates = estimates.filter(estimate => estimate.quote_amount && estimate.quote_amount > 0);
   
   // Debug logging

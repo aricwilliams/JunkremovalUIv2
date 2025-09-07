@@ -183,7 +183,7 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
         sort_by: 'created_at',
         sort_order: 'desc'
       });
-      
+      console.log('🔍 Estimates API Response:', response);
       if (response.success && response.data && response.data.estimates) {
         console.log('✅ Setting estimates from API:', response.data.estimates.length, 'estimates');
         setEstimates(response.data.estimates);

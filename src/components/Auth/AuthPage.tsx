@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import Logo from '../Common/Logo';
 import { useAuth } from '../../contexts/AuthContext';
+import PasswordResetForm from './PasswordResetForm';
 
 interface LoginFormData {
   username: string;
@@ -35,7 +36,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000
 
 const AuthPage: React.FC<{ onLoginSuccess: (user: any) => void }> = ({ onLoginSuccess }) => {
   const { login, refreshAuth } = useAuth();
-  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
+  const [activeTab, setActiveTab] = useState<'login' | 'signup' | 'reset'>('login');
   const [loginData, setLoginData] = useState<LoginFormData>({
     username: '',
     password: ''
@@ -180,6 +181,16 @@ const AuthPage: React.FC<{ onLoginSuccess: (user: any) => void }> = ({ onLoginSu
     }
   };
 
+  // Show password reset form if active tab is reset
+  if (activeTab === 'reset') {
+    return (
+      <PasswordResetForm 
+        onBackToLogin={() => setActiveTab('login')}
+        onSuccess={() => setActiveTab('login')}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
@@ -308,6 +319,16 @@ const AuthPage: React.FC<{ onLoginSuccess: (user: any) => void }> = ({ onLoginSu
                       ) : (
                         'Sign In'
                       )}
+                    </button>
+                  </div>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('reset')}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      Forgot your password?
                     </button>
                   </div>
                 </form>
