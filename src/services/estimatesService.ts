@@ -37,8 +37,8 @@ export interface EstimateRequest {
   request_donation_pickup: boolean;
   request_demolition_addon: boolean;
   how_did_you_hear?: string;
-  request_priority: 'standard' | 'urgent' | 'low';
-  status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired';
+  request_priority: 'low' | 'standard' | 'high' | 'urgent';
+  status: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled';
   quote_amount?: number;
   quote_notes?: string;
   created_at: string;
@@ -107,8 +107,8 @@ export interface CreateEstimateRequest {
   request_donation_pickup?: boolean;
   request_demolition_addon?: boolean;
   how_did_you_hear?: string;
-  request_priority?: 'standard' | 'urgent' | 'low';
-  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired';
+  request_priority?: 'low' | 'standard' | 'high' | 'urgent';
+  status?: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled';
   quote_amount?: number;
   quote_notes?: string;
 }
@@ -146,8 +146,8 @@ export interface UpdateEstimateRequest {
   request_donation_pickup?: boolean;
   request_demolition_addon?: boolean;
   how_did_you_hear?: string;
-  request_priority?: 'standard' | 'urgent' | 'low';
-  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired';
+  request_priority?: 'low' | 'standard' | 'high' | 'urgent';
+  status?: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled';
   quote_amount?: number;
   quote_notes?: string;
 }
@@ -345,18 +345,14 @@ class EstimatesService {
   /**
    * Update estimate status and quote amount (convenience method)
    */
-  async updateEstimateQuote(id: number, quoteAmount: number, quoteNotes?: string, status: 'quoted' | 'reviewed' = 'quoted'): Promise<UpdateEstimateResponse> {
-    return this.updateEstimate(id, {
-      quote_amount: quoteAmount,
-      quote_notes: quoteNotes,
-      status: status
-    });
+  async updateEstimateQuote(id: number, updateData: UpdateEstimateRequest): Promise<UpdateEstimateResponse> {
+    return this.updateEstimate(id, updateData);
   }
 
   /**
    * Update estimate status only (convenience method)
    */
-  async updateEstimateStatus(id: number, status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired'): Promise<UpdateEstimateResponse> {
+  async updateEstimateStatus(id: number, status: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled'): Promise<UpdateEstimateResponse> {
     return this.updateEstimate(id, { status });
   }
 }
