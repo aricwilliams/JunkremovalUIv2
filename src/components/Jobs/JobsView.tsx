@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { Job } from '../../types';
+import { Job, EstimateRequest } from '../../types';
 import JobsListView from './JobsListView';
 import JobsMapView from './JobsMapView';
 import JobProgressTracker from './JobProgressTracker';
@@ -9,35 +9,38 @@ import CreateJobForm from './CreateJobForm';
 import { Map, List, Play, Plus, BarChart3 } from 'lucide-react';
 
 const JobsView: React.FC = () => {
-  const { jobs, updateJob, loading, error, refreshJobs, customers } = useApp();
+  const { estimates, refreshEstimates, customers } = useApp();
   const [viewMode, setViewMode] = useState<'list' | 'map' | 'progress' | 'stats'>('list');
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedEstimate, setSelectedEstimate] = useState<EstimateRequest | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleStatusUpdate = async (jobId: string, newStatus: string) => {
-    await updateJob(jobId, { status: newStatus as any });
+  const handleStatusUpdate = async (estimateId: string, newStatus: string) => {
+    // Handle estimate status update if needed
+    console.log('Status update for estimate:', estimateId, newStatus);
   };
 
-  const handleJobSelect = (job: Job) => {
-    setSelectedJob(job);
+  const handleEstimateSelect = (estimate: EstimateRequest) => {
+    setSelectedEstimate(estimate);
     setViewMode('progress');
   };
 
-  const handleJobCreated = (job: Job) => {
+  const handleEstimateCreated = (estimate: EstimateRequest) => {
     setShowCreateForm(false);
-    refreshJobs(); // Refresh the jobs list
+    refreshEstimates(); // Refresh the estimates list
   };
 
-  const handleJobUpdated = (updatedJob: Job) => {
+  const handleEstimateUpdated = (updatedEstimate: EstimateRequest) => {
     // The AppContext already handles optimistic updates
     // No need to refresh - the UI will update immediately
-    console.log('✅ Job updated successfully:', updatedJob);
+    console.log('✅ Estimate updated successfully:', updatedEstimate);
   };
 
-  const handleJobDeleted = (jobId: number) => {
+  const handleEstimateDeleted = (estimateId: number) => {
     // The AppContext already handles the deletion
     // No need to refresh - the UI will update immediately
-    console.log('✅ Job deleted successfully:', jobId);
+    console.log('✅ Estimate deleted successfully:', estimateId);
   };
 
   return (
@@ -45,7 +48,7 @@ const JobsView: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 space-y-4 sm:space-y-0">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Jobs</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your junk removal jobs</p>
+          <p className="text-sm sm:text-base text-gray-600">Manage your junk removal estimates</p>
         </div>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
@@ -53,7 +56,7 @@ const JobsView: React.FC = () => {
             <div className="flex items-center space-x-2 px-3 py-2 bg-red-100 text-red-700 rounded-lg text-sm">
               <span>Error: {error}</span>
               <button
-                onClick={refreshJobs}
+                onClick={refreshEstimates}
                 className="underline hover:no-underline"
               >
                 Retry
@@ -106,7 +109,7 @@ const JobsView: React.FC = () => {
             <span className="sm:hidden">Stats</span>
           </button>
 
-          {selectedJob && (
+          {selectedEstimate && (
             <button
               onClick={() => setViewMode('progress')}
               className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${viewMode === 'progress'
@@ -126,52 +129,52 @@ const JobsView: React.FC = () => {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading jobs...</p>
+            <p className="text-gray-600">Loading estimates...</p>
           </div>
         </div>
       ) : viewMode === 'list' ? (
         <JobsListView 
-          jobs={jobs} 
-          onJobSelect={handleJobSelect}
-          onJobUpdated={handleJobUpdated}
-          onJobDeleted={handleJobDeleted}
+          jobs={estimates} 
+          onJobSelect={handleEstimateSelect}
+          onJobUpdated={handleEstimateUpdated}
+          onJobDeleted={handleEstimateDeleted}
         />
       ) : viewMode === 'map' ? (
         <JobsMapView 
-          jobs={jobs} 
-          onJobSelect={handleJobSelect}
-          onJobUpdated={handleJobUpdated}
-          onJobDeleted={handleJobDeleted}
+          jobs={estimates} 
+          onJobSelect={handleEstimateSelect}
+          onJobUpdated={handleEstimateUpdated}
+          onJobDeleted={handleEstimateDeleted}
         />
       ) : viewMode === 'stats' ? (
         <JobStatsDashboard />
       ) : (
-        selectedJob ? (
+        selectedEstimate ? (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Job Progress Tracker</h2>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Estimate Progress Tracker</h2>
               <button
                 onClick={() => setViewMode('list')}
                 className="px-3 sm:px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm sm:text-base"
               >
-                Back to Jobs
+                Back to Estimates
               </button>
             </div>
             <JobProgressTracker
-              job={selectedJob}
+              job={selectedEstimate}
               onStatusUpdate={handleStatusUpdate}
             />
           </div>
         ) : (
           <div className="text-center py-12">
             <Play className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium text-gray-500 mb-2">No Job Selected</p>
-            <p className="text-sm text-gray-400 mb-4">Select a job from the list to track its progress</p>
+            <p className="text-lg font-medium text-gray-500 mb-2">No Estimate Selected</p>
+            <p className="text-sm text-gray-400 mb-4">Select an estimate from the list to track its progress</p>
             <button
               onClick={() => setViewMode('list')}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              View Jobs List
+              View Estimates List
             </button>
           </div>
         )
@@ -179,7 +182,7 @@ const JobsView: React.FC = () => {
 
       {showCreateForm && (
         <CreateJobForm
-          onJobCreated={handleJobCreated}
+          onJobCreated={handleEstimateCreated}
           onCancel={() => setShowCreateForm(false)}
           customers={customers.map(customer => ({
             id: typeof customer.id === 'string' ? parseInt(customer.id) : customer.id,

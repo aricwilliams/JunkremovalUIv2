@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Job } from '../../types';
+import { EstimateRequest } from '../../types';
 import {
   Play,
   CheckCircle,
@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 interface JobProgressTrackerProps {
-  job: Job;
+  job: EstimateRequest;
   onStatusUpdate: (jobId: string, newStatus: string) => void;
 }
 
@@ -24,8 +24,9 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
   const [notificationSent, setNotificationSent] = useState(false);
 
   const statusSteps = [
-    { key: 'scheduled', label: 'Scheduled', icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
-    { key: 'in-progress', label: 'In Progress', icon: Play, color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' },
+    { key: 'pending', label: 'Pending', icon: Clock, color: 'text-gray-600', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' },
+    { key: 'quoted', label: 'Quoted', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+    { key: 'scheduled', label: 'Scheduled', icon: Play, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
     { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
   ];
 
@@ -56,15 +57,15 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
   };
 
   const handleCall = () => {
-    window.open(`tel:${job.customerPhone}`, '_self');
+    window.open(`tel:${job.phone_number}`, '_self');
   };
 
   const handleEmail = () => {
-    window.open(`mailto:${job.customerEmail}`, '_self');
+    window.open(`mailto:${job.email_address}`, '_self');
   };
 
   const handleGoogleMaps = () => {
-    const address = `${job.address}, ${job.city}, ${job.state}`;
+    const address = job.service_address;
     const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
     window.open(googleMapsUrl, '_blank');
   };
@@ -74,12 +75,12 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
       {/* Header with Customer Info and Estimate */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
         <div>
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{job.customerName}</h3>
-          <p className="text-sm text-gray-600 break-words">{job.address}, {job.city}, {job.state}</p>
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900">{job.full_name}</h3>
+          <p className="text-sm text-gray-600 break-words">{job.service_address}</p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-xl sm:text-2xl font-bold text-gray-900">${job.totalEstimate}</p>
-          <p className="text-sm text-gray-600">{job.estimatedHours}h estimated</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">${job.quote_amount ? parseFloat(job.quote_amount).toLocaleString() : 'Not quoted'}</p>
+          <p className="text-sm text-gray-600">{job.approximate_volume}</p>
         </div>
       </div>
 

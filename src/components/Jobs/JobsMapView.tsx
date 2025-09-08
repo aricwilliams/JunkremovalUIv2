@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadModules } from 'esri-loader';
-import { Job } from '../../types';
+import { EstimateRequest } from '../../types';
 import JobDetailsModal from './JobDetailsModal';
 import {
   Filter,
@@ -15,13 +15,13 @@ import {
 } from 'lucide-react';
 
 interface JobsMapViewProps {
-  jobs: Job[];
-  onJobSelect?: (job: Job) => void;
-  onJobUpdated?: (updatedJob: Job) => void;
+  jobs: EstimateRequest[];
+  onJobSelect?: (job: EstimateRequest) => void;
+  onJobUpdated?: (updatedJob: EstimateRequest) => void;
   onJobDeleted?: (jobId: number) => void;
 }
 
-interface JobWithCoordinates extends Job {
+interface JobWithCoordinates extends EstimateRequest {
   latitude: number;
   longitude: number;
 }
@@ -32,6 +32,24 @@ declare global {
     updateMarkers?: () => void;
   }
 }
+
+// Mock coordinates function for estimates
+const getMockCoordinates = (address: string) => {
+  // Generate consistent mock coordinates based on address hash
+  const hash = address.split('').reduce((a, b) => {
+    a = ((a << 5) - a) + b.charCodeAt(0);
+    return a & a;
+  }, 0);
+  
+  // Wilmington, NC area coordinates with some variation
+  const baseLat = 34.2257;
+  const baseLng = -77.9447;
+  
+  return {
+    latitude: baseLat + (hash % 100) / 1000,
+    longitude: baseLng + (hash % 100) / 1000
+  };
+};
 
 const JobsMapView: React.FC<JobsMapViewProps> = ({ 
   jobs, 
@@ -244,9 +262,12 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
           graphicsLayerRef.current.removeAll();
 
           filteredJobs.forEach((job) => {
+            // For estimates, we'll use mock coordinates based on the address
+            // In a real app, you'd geocode the service_address
+            const mockCoords = getMockCoordinates(job.service_address);
             const point = new Point({
-              longitude: job.longitude,
-              latitude: job.latitude,
+              longitude: mockCoords.longitude,
+              latitude: mockCoords.latitude,
             });
 
             const color = getStatusColor();
@@ -491,7 +512,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
           <div className="bg-white rounded-lg max-w-sm sm:max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">
-                {selectedJob.customer?.name || selectedJob.customerName || 'Unknown Customer'}
+                {selectedJob.full_name || 'Unknown Customer'}
               </h3>
               <button
                 onClick={handleCloseModal}
@@ -505,33 +526,33 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
               <div className="flex items-start space-x-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span className="break-words">
-                  {selectedJob.customer?.address || selectedJob.address || 'N/A'}, {selectedJob.customer?.city || selectedJob.city || 'N/A'}, {selectedJob.customer?.state || selectedJob.state || 'N/A'}
+                  {selectedJob.service_address || 'N/A'}
                 </span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Calendar className="w-4 h-4" />
-                <span>{selectedJob.scheduled_date ? new Date(selectedJob.scheduled_date).toLocaleDateString() : 'No date'}</span>
+                <span>{selectedJob.preferred_date ? new Date(selectedJob.preferred_date).toLocaleDateString() : 'No date'}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Clock className="w-4 h-4" />
-                <span>{selectedJob.scheduled_date ? new Date(selectedJob.scheduled_date).toLocaleTimeString() : 'No time'}</span>
+                <span>{selectedJob.preferred_time || 'No time'}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <DollarSign className="w-4 h-4" />
-                <span>${(selectedJob.total_cost || selectedJob.totalEstimate || 0).toLocaleString()}</span>
+                <span>${selectedJob.quote_amount ? parseFloat(selectedJob.quote_amount).toLocaleString() : 'Not quoted'}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <span className="capitalize">{selectedJob.status.replace('-', ' ')}</span>
+                <span className="capitalize">{(selectedJob.status || 'pending').replace('-', ' ')}</span>
               </div>
 
-              {(selectedJob.description || selectedJob.notes) && (
-                <div className="text-sm text-gray-600" style={{display: 'none'}}>
+              {selectedJob.additional_notes && (
+                <div className="text-sm text-gray-600">
                   <p className="font-medium mb-1">Notes:</p>
-                  <p className="break-words">{selectedJob.description || selectedJob.notes}</p>
+                  <p className="break-words">{selectedJob.additional_notes}</p>
                 </div>
               )}
 
