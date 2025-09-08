@@ -20,7 +20,7 @@ import {
   UserPlus,
   RefreshCw
 } from 'lucide-react';
-import { ClientRequest, Estimate, PricingItem, Customer } from '../../types';
+import { Estimate, PricingItem, Customer } from '../../types';
 import { EstimateRequest, estimatesService } from '../../services/estimatesService';
 import { useApp } from '../../contexts/AppContext';
 import { usePDFGenerator } from '../../hooks/usePDFGenerator';
@@ -50,7 +50,7 @@ const EstimatesDashboard: React.FC = () => {
   });
   
 
-  // New request form data
+  // New request form data - matches database schema
   const [requestFormData, setRequestFormData] = useState({
     isNewCustomer: true,
     selectedCustomerId: '',
@@ -72,25 +72,19 @@ const EstimatesDashboard: React.FC = () => {
     filledWithWater: false,
     filledWithOil: false,
     hazardousMaterial: false,
-    hazardousDescription: '',
     itemsInBags: false,
-    bagContents: '',
     oversizedItems: false,
-    oversizedDescription: '',
     hasMold: false,
     hasPests: false,
     hasSharpObjects: false,
     heavyLiftingRequired: false,
     disassemblyRequired: false,
-    disassemblyDescription: '',
     additionalNotes: '',
     requestDonationPickup: false,
     requestDemolition: false,
-    demolitionDescription: '',
     howDidYouHear: '',
-    priority: 'standard' as 'standard' | 'urgent',
-    textOptIn: false,
-    understandPricing: false
+    priority: 'standard' as 'standard' | 'urgent' | 'low',
+    textOptIn: false
   });
 
 
@@ -144,18 +138,16 @@ const EstimatesDashboard: React.FC = () => {
   ]);
 
 
-  const getPriorityColor = (priority: string) => {
+  const getPriorityColor = (priority: string | null | undefined) => {
     switch (priority) {
       case 'urgent': return 'bg-red-100 text-red-800';
-      case 'high': return 'bg-orange-100 text-orange-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'low': return 'bg-green-100 text-green-800';
       case 'standard': return 'bg-blue-100 text-blue-800';
+      case 'low': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const getEstimateStatusColor = (status: string) => {
+  const getEstimateStatusColor = (status: string | null | undefined) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'reviewed': return 'bg-blue-100 text-blue-800';
@@ -238,7 +230,7 @@ const EstimatesDashboard: React.FC = () => {
     });
   };
 
-  const handleSubmitRequest = (e: React.FormEvent) => {
+  const handleSubmitRequest = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate form based on customer type
@@ -247,123 +239,125 @@ const EstimatesDashboard: React.FC = () => {
       return;
     }
 
-    if (requestFormData.isNewCustomer && (!requestFormData.fullName || !requestFormData.phone || !requestFormData.email || !requestFormData.serviceAddress)) {
+    if (requestFormData.isNewCustomer && (!requestFormData.fullName || !requestFormData.phone || !requestFormData.email || !requestFormData.serviceAddress || !requestFormData.locationOnProperty || !requestFormData.approximateVolume)) {
       alert('Please fill in all required fields for new customer');
       return;
     }
 
-    // Create a new request with the form data (for future database integration)
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const newRequest: ClientRequest = {
-      id: `req-${Date.now()}`,
-      customerId: requestFormData.isNewCustomer ? `new-${Date.now()}` : requestFormData.selectedCustomerId,
-      customerName: requestFormData.isNewCustomer ? requestFormData.fullName : customers.find(c => c.id.toString() === requestFormData.selectedCustomerId)?.name || 'Unknown Customer',
-      type: 'pickup',
-      priority: requestFormData.priority,
-      status: 'pending',
-      subject: `Junk Removal Request - ${requestFormData.isNewCustomer ? requestFormData.fullName : customers.find(c => c.id.toString() === requestFormData.selectedCustomerId)?.name || 'Unknown Customer'}`,
-      description: `Request from ${requestFormData.isNewCustomer ? requestFormData.fullName : customers.find(c => c.id.toString() === requestFormData.selectedCustomerId)?.name || 'Unknown Customer'} for junk removal service.`,
-      requestedDate: new Date(),
-      preferredDate: requestFormData.preferredDate ? new Date(requestFormData.preferredDate) : new Date(),
-      preferredTime: requestFormData.preferredTime || 'Flexible',
-      location: {
-        address: requestFormData.serviceAddress,
-        city: 'Wilmington',
-        state: 'NC',
-        zipCode: '28401'
-      },
-      volume: {
-        weight: 0,
-        yardage: 0
-      },
-      attachments: [...requestFormData.photos.map(f => f.name), ...requestFormData.videos.map(f => f.name)],
-      notes: requestFormData.additionalNotes,
-      created: new Date(),
-      updated: new Date(),
-      fullName: requestFormData.fullName,
-      phone: requestFormData.phone,
-      email: requestFormData.email,
-      serviceAddress: requestFormData.serviceAddress,
-      gateCode: requestFormData.gateCode,
-      apartmentNumber: requestFormData.apartmentNumber,
-      locationOnProperty: requestFormData.locationOnProperty,
-      approximateVolume: requestFormData.approximateVolume,
-      accessConsiderations: requestFormData.accessConsiderations,
-      materialTypes: requestFormData.materialTypes,
-      approximateItemCount: requestFormData.approximateItemCount,
-      filledWithWater: requestFormData.filledWithWater,
-      filledWithOil: requestFormData.filledWithOil,
-      hazardousMaterial: requestFormData.hazardousMaterial,
-      hazardousDescription: requestFormData.hazardousDescription,
-      itemsInBags: requestFormData.itemsInBags,
-      bagContents: requestFormData.bagContents,
-      oversizedItems: requestFormData.oversizedItems,
-      oversizedDescription: requestFormData.oversizedDescription,
-      hasMold: requestFormData.hasMold,
-      hasPests: requestFormData.hasPests,
-      hasSharpObjects: requestFormData.hasSharpObjects,
-      heavyLiftingRequired: requestFormData.heavyLiftingRequired,
-      disassemblyRequired: requestFormData.disassemblyRequired,
-      disassemblyDescription: requestFormData.disassemblyDescription,
-      additionalNotes: requestFormData.additionalNotes,
-      requestDonationPickup: requestFormData.requestDonationPickup,
-      requestDemolition: requestFormData.requestDemolition,
-      demolitionDescription: requestFormData.demolitionDescription,
-      howDidYouHear: requestFormData.howDidYouHear,
-      textOptIn: requestFormData.textOptIn,
-      canCreateEstimate: true,
-      estimateStatus: 'pending'
-    };
+    try {
+      // Clean up phone number format (remove dashes, spaces, parentheses)
+      const cleanPhoneNumber = requestFormData.phone?.replace(/[\s\-\(\)]/g, '') || '';
 
-    // Note: In a real app, this would create the request in the database
-    // and the estimates would be refreshed from the API
-    console.log('New request created:', newRequest);
-    
-    // Reset form
-    setRequestFormData({
-      isNewCustomer: true,
-      selectedCustomerId: '',
-      fullName: '',
-      phone: '',
-      email: '',
-      serviceAddress: '',
-      gateCode: '',
-      apartmentNumber: '',
-      preferredDate: '',
-      preferredTime: '',
-      locationOnProperty: '',
-      approximateVolume: '',
-      accessConsiderations: '',
-      photos: [],
-      videos: [],
-      materialTypes: [],
-      approximateItemCount: '',
-      filledWithWater: false,
-      filledWithOil: false,
-      hazardousMaterial: false,
-      hazardousDescription: '',
-      itemsInBags: false,
-      bagContents: '',
-      oversizedItems: false,
-      oversizedDescription: '',
-      hasMold: false,
-      hasPests: false,
-      hasSharpObjects: false,
-      heavyLiftingRequired: false,
-      disassemblyRequired: false,
-      disassemblyDescription: '',
-      additionalNotes: '',
-      requestDonationPickup: false,
-      requestDemolition: false,
-      demolitionDescription: '',
-      howDidYouHear: '',
-      priority: 'standard',
-      textOptIn: false,
-      understandPricing: false
-    });
+      // Convert preferred_date from ISO timestamp to YYYY-MM-DD format for MySQL
+      const formatDateForMySQL = (dateString: string | undefined): string | undefined => {
+        if (!dateString) return undefined;
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD part
+        } catch (error) {
+          console.warn('Invalid date format:', dateString);
+          return undefined;
+        }
+      };
 
-    setShowNewRequest(false);
-    alert('Request submitted successfully!');
+      // Map form data to API format - matches database schema exactly
+      const estimateData = {
+        // REQUIRED FIELDS - Must include all of these
+        full_name: requestFormData.fullName,
+        phone_number: cleanPhoneNumber,
+        email_address: requestFormData.email,
+        service_address: requestFormData.serviceAddress,
+        location_on_property: requestFormData.locationOnProperty,
+        approximate_volume: requestFormData.approximateVolume,
+        material_types: requestFormData.materialTypes,
+        
+        // OPTIONAL FIELDS - Include existing values (convert to proper types)
+        is_new_client: Boolean(requestFormData.isNewCustomer),
+        existing_client_id: requestFormData.isNewCustomer ? null : parseInt(requestFormData.selectedCustomerId),
+        ok_to_text: Boolean(requestFormData.textOptIn),
+        gate_code: requestFormData.gateCode || null,
+        apartment_unit: requestFormData.apartmentNumber || null,
+        preferred_date: formatDateForMySQL(requestFormData.preferredDate),
+        preferred_time: requestFormData.preferredTime || null,
+        access_considerations: requestFormData.accessConsiderations || null,
+        photos: requestFormData.photos.length > 0 ? requestFormData.photos.map(f => f.name) : null,
+        videos: requestFormData.videos.length > 0 ? requestFormData.videos.map(f => f.name) : null,
+        approximate_item_count: requestFormData.approximateItemCount || null,
+        items_filled_water: Boolean(requestFormData.filledWithWater),
+        items_filled_oil_fuel: Boolean(requestFormData.filledWithOil),
+        hazardous_materials: Boolean(requestFormData.hazardousMaterial),
+        items_tied_bags: Boolean(requestFormData.itemsInBags),
+        oversized_items: Boolean(requestFormData.oversizedItems),
+        mold_present: Boolean(requestFormData.hasMold),
+        pests_present: Boolean(requestFormData.hasPests),
+        sharp_objects: Boolean(requestFormData.hasSharpObjects),
+        heavy_lifting_required: Boolean(requestFormData.heavyLiftingRequired),
+        disassembly_required: Boolean(requestFormData.disassemblyRequired),
+        additional_notes: requestFormData.additionalNotes || null,
+        request_donation_pickup: Boolean(requestFormData.requestDonationPickup),
+        request_demolition_addon: Boolean(requestFormData.requestDemolition),
+        how_did_you_hear: requestFormData.howDidYouHear || '',
+        request_priority: requestFormData.priority,
+        status: 'pending' as const,
+        amount: null,
+        quote_amount: null,
+        quote_notes: ''
+      };
+
+      console.log('Creating new estimate with data:', estimateData);
+
+      // Create the new estimate via API
+      await estimatesService.createEstimate(estimateData);
+
+      console.log('New estimate created successfully');
+      
+      // Reset form
+      setRequestFormData({
+        isNewCustomer: true,
+        selectedCustomerId: '',
+        fullName: '',
+        phone: '',
+        email: '',
+        serviceAddress: '',
+        gateCode: '',
+        apartmentNumber: '',
+        preferredDate: '',
+        preferredTime: '',
+        locationOnProperty: '',
+        approximateVolume: '',
+        accessConsiderations: '',
+        photos: [],
+        videos: [],
+        materialTypes: [],
+        approximateItemCount: '',
+        filledWithWater: false,
+        filledWithOil: false,
+        hazardousMaterial: false,
+        itemsInBags: false,
+        oversizedItems: false,
+        hasMold: false,
+        hasPests: false,
+        hasSharpObjects: false,
+        heavyLiftingRequired: false,
+        disassemblyRequired: false,
+        additionalNotes: '',
+        requestDonationPickup: false,
+        requestDemolition: false,
+        howDidYouHear: '',
+        priority: 'standard',
+        textOptIn: false
+      });
+
+      setShowNewRequest(false);
+      
+      // Refresh estimates data
+      await refreshEstimates();
+      
+      alert('Request submitted successfully!');
+    } catch (error: any) {
+      console.error('Error creating estimate:', error);
+      alert(`Failed to create estimate: ${error.message || 'Unknown error'}`);
+    }
   };
 
   return (
@@ -457,25 +451,25 @@ const EstimatesDashboard: React.FC = () => {
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="font-semibold text-gray-900">Request #{request.id}</h3>
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(request.status)}`}>
-                            {request.status.toUpperCase()}
+                            {(request.status || 'pending').toUpperCase()}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(request.request_priority)}`}>
-                            {request.request_priority.toUpperCase()}
+                            {(request.request_priority || 'standard').toUpperCase()}
                           </span>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600 mb-2">
                           <div className="flex items-center space-x-1">
                             <User className="w-4 h-4" />
-                            <span>{request.is_new_client ? request.full_name : request.existing_customer_name || 'N/A'}</span>
+                            <span>{request.full_name}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Phone className="w-4 h-4" />
-                            <span>{request.is_new_client ? request.phone_number : request.existing_customer_phone || 'N/A'}</span>
+                            <span>{request.phone_number}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Mail className="w-4 h-4" />
-                            <span>{request.is_new_client ? request.email_address : request.existing_customer_email || 'N/A'}</span>
+                            <span>{request.email_address}</span>
                           </div>
                         </div>
 
@@ -486,7 +480,7 @@ const EstimatesDashboard: React.FC = () => {
                           </div>
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-4 h-4" />
-                            <span>Created: {new Date(request.created_at).toLocaleDateString()}</span>
+                            <span>Created: {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}</span>
                           </div>
                           <div className="flex items-center space-x-1">
                             <Package className="w-4 h-4" />
@@ -498,9 +492,9 @@ const EstimatesDashboard: React.FC = () => {
                           <p className="text-sm text-gray-600 mb-2">{request.additional_notes}</p>
                         )}
 
-                        {request.material_types && request.material_types.length > 0 && (
+                        {request.material_types && Array.isArray(request.material_types) && request.material_types.length > 0 && (
                           <div className="flex flex-wrap gap-1 mb-2">
-                            {request.material_types.map((type, index) => (
+                            {request.material_types.map((type: any, index: number) => (
                               <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                 {type}
                               </span>
@@ -573,18 +567,18 @@ const EstimatesDashboard: React.FC = () => {
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="font-semibold text-gray-900">Estimate #{estimate.id}</h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(estimate.status)}`}>
-                            {estimate.status.toUpperCase()}
+                            {(estimate.status || 'pending').toUpperCase()}
                           </span>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(estimate.request_priority)}`}>
-                              {estimate.request_priority.toUpperCase()}
+                              {(estimate.request_priority || 'standard').toUpperCase()}
                             </span>
                         </div>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
                             <div>
                               <div className="font-medium text-gray-900">Customer Information</div>
-                              <div>Name: {estimate.is_new_client ? estimate.full_name : estimate.existing_customer_name || 'N/A'}</div>
-                              <div>Phone: {estimate.is_new_client ? estimate.phone_number : estimate.existing_customer_phone || 'N/A'}</div>
-                              <div>Email: {estimate.is_new_client ? estimate.email_address : estimate.existing_customer_email || 'N/A'}</div>
+                              <div>Name: {estimate.full_name}</div>
+                              <div>Phone: {estimate.phone_number}</div>
+                              <div>Email: {estimate.email_address}</div>
                         </div>
                             <div>
                               <div className="font-medium text-gray-900">Service Details</div>
@@ -605,7 +599,7 @@ const EstimatesDashboard: React.FC = () => {
                             <p className="mt-2 text-sm text-gray-600">Notes: {estimate.additional_notes}</p>
                           )}
                           <div className="mt-2 text-xs text-gray-500">
-                            Created: {new Date(estimate.created_at).toLocaleDateString()} at {new Date(estimate.created_at).toLocaleTimeString()}
+                            Created: {estimate.created_at ? new Date(estimate.created_at).toLocaleDateString() : 'N/A'} at {estimate.created_at ? new Date(estimate.created_at).toLocaleTimeString() : 'N/A'}
                       </div>
                         </div>
                         <div className="flex space-x-2 ml-4">
@@ -818,6 +812,7 @@ const EstimatesDashboard: React.FC = () => {
                   // UPDATE FIELDS - These are what you want to change
                   status: 'quoted',
                   quote_amount: amount, // Keep as number, not string
+                  amount: amount, // Also set the amount field
                   quote_notes: notes,
                   
                   // OPTIONAL FIELDS - Include existing values (convert numeric booleans to actual booleans)
@@ -826,7 +821,7 @@ const EstimatesDashboard: React.FC = () => {
                   ok_to_text: Boolean(currentEstimate.ok_to_text),
                   gate_code: currentEstimate.gate_code,
                   apartment_unit: currentEstimate.apartment_unit,
-                  preferred_date: formatDateForMySQL(currentEstimate.preferred_date),
+                  preferred_date: currentEstimate.preferred_date ? formatDateForMySQL(currentEstimate.preferred_date) : null,
                   preferred_time: currentEstimate.preferred_time,
                   access_considerations: currentEstimate.access_considerations,
                   photos: currentEstimate.photos,
@@ -896,15 +891,15 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({ request, onCl
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Full Name</label>
-                <p className="text-sm text-gray-900">{request.full_name || request.existing_customer_name || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{request.full_name}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Phone</label>
-                <p className="text-sm text-gray-900">{request.phone_number || request.existing_customer_phone || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{request.phone_number}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Email</label>
-                <p className="text-sm text-gray-900">{request.email_address || request.existing_customer_email || 'N/A'}</p>
+                <p className="text-sm text-gray-900">{request.email_address}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Service Address</label>
@@ -932,7 +927,7 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({ request, onCl
               <div>
                 <label className="block text-sm font-medium text-gray-700">Material Types</label>
                 <div className="flex flex-wrap gap-1">
-                  {request.material_types?.map((type, index) => (
+                  {Array.isArray(request.material_types) && request.material_types.map((type: any, index: number) => (
                     <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                       {type}
                     </span>
@@ -1063,12 +1058,12 @@ const CreateEstimateModal: React.FC<CreateEstimateModalProps> = ({ request, onCl
     const newEstimate: Estimate = {
       id: `est-${Date.now()}`,
       customerId: request.existing_client_id?.toString() || '',
-      customerName: request.full_name || request.existing_customer_name || '',
-      customerEmail: request.email_address || request.existing_customer_email || '',
-      customerPhone: request.phone_number || request.existing_customer_phone || '',
+      customerName: request.full_name,
+      customerEmail: request.email_address,
+      customerPhone: request.phone_number,
       address: request.service_address,
-      city: request.existing_customer_city || '',
-      state: request.existing_customer_state || '',
+      city: '',
+      state: '',
       zipCode: '',
       items: lineItems.map(item => ({
         id: item.id,
@@ -1796,6 +1791,67 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             </h3>
             <div className="space-y-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Item Count</label>
+                <input
+                  type="text"
+                  value={formData.approximateItemCount}
+                  onChange={(e) => setFormData({ ...formData, approximateItemCount: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="e.g., 5-10 items, 2 large pieces, etc."
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Photos (Optional)</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setFormData({ ...formData, photos: files });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Upload photos to help us better understand your project</p>
+                {formData.photos.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">Selected files:</p>
+                    <ul className="text-xs text-gray-500">
+                      {formData.photos.map((file: File, index: number) => (
+                        <li key={index}>• {file.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Videos (Optional)</label>
+                <input
+                  type="file"
+                  multiple
+                  accept="video/*"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setFormData({ ...formData, videos: files });
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="text-xs text-gray-500 mt-1">Upload videos to help us better understand your project</p>
+                {formData.videos.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">Selected files:</p>
+                    <ul className="text-xs text-gray-500">
+                      {formData.videos.map((file: File, index: number) => (
+                        <li key={index}>• {file.name}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
                 <textarea
                   value={formData.additionalNotes}
@@ -1824,9 +1880,10 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">Request Priority</label>
                   <select
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'standard' | 'urgent' })}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'standard' | 'urgent' | 'low' })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
+                    <option value="low">Low Priority</option>
                     <option value="standard">Standard Request</option>
                     <option value="urgent">Urgent/Same Day</option>
                   </select>
@@ -1849,18 +1906,6 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center">
-            <input
-              type="checkbox"
-              required
-              checked={formData.understandPricing}
-              onChange={(e) => setFormData({ ...formData, understandPricing: e.target.checked })}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="ml-2 text-sm text-gray-700">
-              I understand that final pricing will be provided after review of my request *
-            </span>
-          </div>
 
           <div className="flex justify-end space-x-3 pt-6 border-t">
             <button
@@ -1932,7 +1977,7 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
               </div>
               <div>
                 <span className="text-sm font-medium text-blue-700">Created</span>
-                <p className="text-lg font-semibold text-blue-900">{new Date(estimate.created_at).toLocaleDateString()}</p>
+                <p className="text-lg font-semibold text-blue-900">{estimate.created_at ? new Date(estimate.created_at).toLocaleDateString() : 'N/A'}</p>
               </div>
             </div>
           </div>
@@ -1948,15 +1993,15 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
                 </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Full Name:</span>
-                  <p className="text-sm text-gray-900">{estimate.is_new_client ? estimate.full_name : estimate.existing_customer_name || 'N/A'}</p>
+                  <p className="text-sm text-gray-900">{estimate.full_name}</p>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Phone:</span>
-                  <p className="text-sm text-gray-900">{estimate.is_new_client ? estimate.phone_number : estimate.existing_customer_phone || 'N/A'}</p>
+                  <p className="text-sm text-gray-900">{estimate.phone_number}</p>
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Email:</span>
-                  <p className="text-sm text-gray-900">{estimate.is_new_client ? estimate.email_address : estimate.existing_customer_email || 'N/A'}</p>
+                  <p className="text-sm text-gray-900">{estimate.email_address}</p>
                   </div>
                   <div>
                   <span className="text-sm font-medium text-gray-700">OK to Text:</span>
@@ -2021,7 +2066,7 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Material Types</h3>
               <div className="bg-gray-50 rounded-lg p-4">
                   <div className="flex flex-wrap gap-2">
-                  {estimate.material_types.map((type: string, index: number) => (
+                  {Array.isArray(estimate.material_types) && estimate.material_types.map((type: any, index: number) => (
                       <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
                         {type}
                       </span>
@@ -2245,9 +2290,9 @@ const QuoteAmountModal: React.FC<QuoteAmountModalProps> = ({
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-1 gap-2 text-sm">
-                    <div><strong>Name:</strong> {request.full_name || request.existing_customer_name || 'N/A'}</div>
-                    <div><strong>Phone:</strong> {request.phone_number || request.existing_customer_phone || 'N/A'}</div>
-                    <div><strong>Email:</strong> {request.email_address || request.existing_customer_email || 'N/A'}</div>
+                    <div><strong>Name:</strong> {request.full_name}</div>
+                    <div><strong>Phone:</strong> {request.phone_number}</div>
+                    <div><strong>Email:</strong> {request.email_address}</div>
                     <div><strong>Address:</strong> {request.service_address}</div>
                     {request.gate_code && (
                       <div><strong>Gate Code:</strong> {request.gate_code}</div>

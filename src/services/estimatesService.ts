@@ -2,54 +2,48 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:3000';
 
-// Estimate interfaces based on the API documentation
+// Estimate interfaces based on the database schema
 export interface EstimateRequest {
   id: number;
   is_new_client: boolean;
-  existing_client_id?: number;
+  existing_client_id?: number | null;
   full_name: string;
   phone_number: string;
   email_address: string;
-  ok_to_text: boolean;
+  ok_to_text?: boolean;
   service_address: string;
-  gate_code?: string;
-  apartment_unit?: string;
-  preferred_date?: string;
-  preferred_time?: string;
+  gate_code?: string | null;
+  apartment_unit?: string | null;
+  preferred_date?: string | null;
+  preferred_time?: string | null;
   location_on_property: string;
   approximate_volume: string;
-  access_considerations?: string;
-  photos?: string[];
-  videos?: string[];
-  material_types: string[];
-  approximate_item_count?: string;
-  items_filled_water: boolean;
-  items_filled_oil_fuel: boolean;
-  hazardous_materials: boolean;
-  items_tied_bags: boolean;
-  oversized_items: boolean;
-  mold_present: boolean;
-  pests_present: boolean;
-  sharp_objects: boolean;
-  heavy_lifting_required: boolean;
-  disassembly_required: boolean;
-  additional_notes?: string;
-  request_donation_pickup: boolean;
-  request_demolition_addon: boolean;
-  how_did_you_hear?: string;
-  request_priority: 'low' | 'standard' | 'high' | 'urgent';
-  status: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled';
-  quote_amount?: number;
-  quote_notes?: string;
-  created_at: string;
-  updated_at: string;
-  existing_customer_name?: string;
-  existing_customer_email?: string;
-  existing_customer_phone?: string;
-  existing_customer_address?: string;
-  existing_customer_city?: string;
-  existing_customer_state?: string;
-  existing_customer_zip_code?: string;
+  access_considerations?: string | null;
+  photos?: any | null; // JSON field
+  videos?: any | null; // JSON field
+  material_types: any; // JSON field
+  approximate_item_count?: string | null;
+  items_filled_water?: boolean;
+  items_filled_oil_fuel?: boolean;
+  hazardous_materials?: boolean;
+  items_tied_bags?: boolean;
+  oversized_items?: boolean;
+  mold_present?: boolean;
+  pests_present?: boolean;
+  sharp_objects?: boolean;
+  heavy_lifting_required?: boolean;
+  disassembly_required?: boolean;
+  additional_notes?: string | null;
+  request_donation_pickup?: boolean;
+  request_demolition_addon?: boolean;
+  how_did_you_hear?: string | null;
+  request_priority?: 'standard' | 'urgent' | 'low' | null;
+  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | null;
+  quote_amount?: number | null;
+  amount?: number | null;
+  quote_notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 export interface EstimatesResponse {
@@ -76,23 +70,23 @@ export interface SingleEstimateResponse {
 
 export interface CreateEstimateRequest {
   is_new_client?: boolean;
-  existing_client_id?: number;
+  existing_client_id?: number | null;
   full_name: string;
   phone_number: string;
   email_address: string;
   ok_to_text?: boolean;
   service_address: string;
-  gate_code?: string;
-  apartment_unit?: string;
-  preferred_date?: string;
-  preferred_time?: string;
+  gate_code?: string | null;
+  apartment_unit?: string | null;
+  preferred_date?: string | null;
+  preferred_time?: string | null;
   location_on_property: string;
   approximate_volume: string;
-  access_considerations?: string;
-  photos?: string[];
-  videos?: string[];
-  material_types: string[];
-  approximate_item_count?: string;
+  access_considerations?: string | null;
+  photos?: any | null; // JSON field
+  videos?: any | null; // JSON field
+  material_types: any; // JSON field
+  approximate_item_count?: string | null;
   items_filled_water?: boolean;
   items_filled_oil_fuel?: boolean;
   hazardous_materials?: boolean;
@@ -103,35 +97,36 @@ export interface CreateEstimateRequest {
   sharp_objects?: boolean;
   heavy_lifting_required?: boolean;
   disassembly_required?: boolean;
-  additional_notes?: string;
+  additional_notes?: string | null;
   request_donation_pickup?: boolean;
   request_demolition_addon?: boolean;
-  how_did_you_hear?: string;
-  request_priority?: 'low' | 'standard' | 'high' | 'urgent';
-  status?: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled';
-  quote_amount?: number;
-  quote_notes?: string;
+  how_did_you_hear?: string | null;
+  request_priority?: 'standard' | 'urgent' | 'low' | null;
+  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | null;
+  quote_amount?: number | null;
+  amount?: number | null;
+  quote_notes?: string | null;
 }
 
 export interface UpdateEstimateRequest {
   is_new_client?: boolean;
-  existing_client_id?: number;
+  existing_client_id?: number | null;
   full_name?: string;
   phone_number?: string;
   email_address?: string;
   ok_to_text?: boolean;
   service_address?: string;
-  gate_code?: string;
-  apartment_unit?: string;
-  preferred_date?: string;
-  preferred_time?: string;
+  gate_code?: string | null;
+  apartment_unit?: string | null;
+  preferred_date?: string | null;
+  preferred_time?: string | null;
   location_on_property?: string;
   approximate_volume?: string;
-  access_considerations?: string;
-  photos?: string[];
-  videos?: string[];
-  material_types?: string[];
-  approximate_item_count?: string;
+  access_considerations?: string | null;
+  photos?: any | null; // JSON field
+  videos?: any | null; // JSON field
+  material_types?: any; // JSON field
+  approximate_item_count?: string | null;
   items_filled_water?: boolean;
   items_filled_oil_fuel?: boolean;
   hazardous_materials?: boolean;
@@ -142,14 +137,15 @@ export interface UpdateEstimateRequest {
   sharp_objects?: boolean;
   heavy_lifting_required?: boolean;
   disassembly_required?: boolean;
-  additional_notes?: string;
+  additional_notes?: string | null;
   request_donation_pickup?: boolean;
   request_demolition_addon?: boolean;
-  how_did_you_hear?: string;
-  request_priority?: 'low' | 'standard' | 'high' | 'urgent';
-  status?: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled';
-  quote_amount?: number;
-  quote_notes?: string;
+  how_did_you_hear?: string | null;
+  request_priority?: 'standard' | 'urgent' | 'low' | null;
+  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | null;
+  quote_amount?: number | null;
+  amount?: number | null;
+  quote_notes?: string | null;
 }
 
 export interface CreateEstimateResponse {
@@ -352,7 +348,7 @@ class EstimatesService {
   /**
    * Update estimate status only (convenience method)
    */
-  async updateEstimateStatus(id: number, status: 'pending' | 'quoted' | 'scheduled' | 'completed' | 'cancelled'): Promise<UpdateEstimateResponse> {
+  async updateEstimateStatus(id: number, status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired'): Promise<UpdateEstimateResponse> {
     return this.updateEstimate(id, { status });
   }
 }
