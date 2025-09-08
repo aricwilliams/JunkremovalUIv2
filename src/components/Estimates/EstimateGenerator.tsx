@@ -602,13 +602,13 @@ const EstimatesDashboard: React.FC = () => {
                             Created: {estimate.created_at ? new Date(estimate.created_at).toLocaleDateString() : 'N/A'} at {estimate.created_at ? new Date(estimate.created_at).toLocaleTimeString() : 'N/A'}
                       </div>
                         </div>
-                        <div className="flex space-x-2 ml-4">
+                        <div className="flex flex-col space-y-2 ml-4">
                         <button
                           onClick={() => handleViewEstimate(estimate)}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                            title="View Details"
+                          className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                         >
                           <Eye className="w-4 h-4" />
+                          <span>Edit Details</span>
                         </button>
                           <div className="relative group">
                             <button 
@@ -754,6 +754,80 @@ const EstimatesDashboard: React.FC = () => {
             setSelectedEstimate(null);
           }}
           onDownloadEstimate={handleDownloadEstimate}
+          onSaveEstimate={async (updatedEstimate) => {
+            try {
+              console.log('Saving estimate details for estimate:', updatedEstimate.id);
+              
+              // Clean up phone number format (remove dashes, spaces, parentheses)
+              const cleanPhoneNumber = updatedEstimate.phone_number?.replace(/[\s\-\(\)]/g, '') || '';
+
+              // Convert preferred_date from ISO timestamp to YYYY-MM-DD format for MySQL
+              const formatDateForMySQL = (dateString: string | undefined): string | undefined => {
+                if (!dateString) return undefined;
+                try {
+                  const date = new Date(dateString);
+                  return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD part
+                } catch (error) {
+                  console.warn('Invalid date format:', dateString);
+                  return undefined;
+                }
+              };
+
+              // Update with all required fields (same logic as QuoteAmountModal)
+              await estimatesService.updateEstimate(
+                updatedEstimate.id,
+                {
+                  // REQUIRED FIELDS - Must include all of these
+                  full_name: updatedEstimate.full_name,
+                  phone_number: cleanPhoneNumber,
+                  email_address: updatedEstimate.email_address,
+                  service_address: updatedEstimate.service_address,
+                  location_on_property: updatedEstimate.location_on_property,
+                  approximate_volume: updatedEstimate.approximate_volume,
+                  material_types: updatedEstimate.material_types,
+                  
+                  // OPTIONAL FIELDS - Include existing values (convert numeric booleans to actual booleans)
+                  is_new_client: Boolean(updatedEstimate.is_new_client),
+                  existing_client_id: updatedEstimate.existing_client_id,
+                  ok_to_text: Boolean(updatedEstimate.ok_to_text),
+                  gate_code: updatedEstimate.gate_code,
+                  apartment_unit: updatedEstimate.apartment_unit,
+                  preferred_date: updatedEstimate.preferred_date ? formatDateForMySQL(updatedEstimate.preferred_date) : null,
+                  preferred_time: updatedEstimate.preferred_time,
+                  access_considerations: updatedEstimate.access_considerations,
+                  photos: updatedEstimate.photos,
+                  videos: updatedEstimate.videos,
+                  approximate_item_count: updatedEstimate.approximate_item_count,
+                  items_filled_water: Boolean(updatedEstimate.items_filled_water),
+                  items_filled_oil_fuel: Boolean(updatedEstimate.items_filled_oil_fuel),
+                  hazardous_materials: Boolean(updatedEstimate.hazardous_materials),
+                  items_tied_bags: Boolean(updatedEstimate.items_tied_bags),
+                  oversized_items: Boolean(updatedEstimate.oversized_items),
+                  mold_present: Boolean(updatedEstimate.mold_present),
+                  pests_present: Boolean(updatedEstimate.pests_present),
+                  sharp_objects: Boolean(updatedEstimate.sharp_objects),
+                  heavy_lifting_required: Boolean(updatedEstimate.heavy_lifting_required),
+                  disassembly_required: Boolean(updatedEstimate.disassembly_required),
+                  additional_notes: updatedEstimate.additional_notes,
+                  request_donation_pickup: Boolean(updatedEstimate.request_donation_pickup),
+                  request_demolition_addon: Boolean(updatedEstimate.request_demolition_addon),
+                  how_did_you_hear: updatedEstimate.how_did_you_hear,
+                  request_priority: updatedEstimate.request_priority,
+                  status: updatedEstimate.status,
+                  quote_amount: updatedEstimate.quote_amount,
+                  amount: updatedEstimate.amount,
+                  quote_notes: updatedEstimate.quote_notes
+                }
+              );
+
+              console.log('Estimate details saved successfully');
+              await refreshEstimates();
+              setSelectedEstimate(updatedEstimate);
+            } catch (error) {
+              console.error('Failed to save estimate details:', error);
+              throw error; // Re-throw to let the modal handle the error display
+            }
+          }}
           pdfLoading={pdfLoading}
         />
       )}
@@ -1933,15 +2007,42 @@ interface EstimateDetailsModalProps {
   estimate: EstimateRequest;
   onClose: () => void;
   onDownloadEstimate: (estimate: EstimateRequest) => Promise<void>;
+  onSaveEstimate: (estimate: EstimateRequest) => Promise<void>;
   pdfLoading: boolean;
 }
 
 const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({ 
   estimate, 
   onClose, 
-  onDownloadEstimate, 
+  onDownloadEstimate,
+  onSaveEstimate,
   pdfLoading 
 }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedEstimate, setEditedEstimate] = useState<EstimateRequest>(estimate);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSaveEstimate(editedEstimate);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving estimate:', error);
+      alert('Failed to save estimate');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditedEstimate(estimate);
+    setIsEditing(false);
+  };
+
+  const updateField = (field: keyof EstimateRequest, value: any) => {
+    setEditedEstimate(prev => ({ ...prev, [field]: value }));
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1949,11 +2050,40 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Estimate Details - #{estimate.id}</h2>
-            <p className="text-sm text-gray-600 mt-1">Complete estimate request information</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {isEditing ? 'Editing estimate request information' : 'Complete estimate request information'}
+            </p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X className="w-6 h-6" />
-          </button>
+          <div className="flex items-center space-x-2">
+            {!isEditing ? (
+              <button 
+                onClick={() => setIsEditing(true)}
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Edit className="w-4 h-4 inline mr-1" />
+                Edit
+              </button>
+            ) : (
+              <>
+                <button 
+                  onClick={handleCancel}
+                  className="px-3 py-1 text-sm bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="px-3 py-1 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+              </>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
         <div className="p-6 space-y-8">
@@ -1989,27 +2119,74 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <span className="text-sm font-medium text-gray-700">Customer Type:</span>
-                  <p className="text-sm text-gray-900">{estimate.is_new_client ? 'New Customer' : 'Existing Customer'}</p>
+                  <p className="text-sm text-gray-900">{editedEstimate.is_new_client ? 'New Customer' : 'Existing Customer'}</p>
                 </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Full Name:</span>
-                  <p className="text-sm text-gray-900">{estimate.full_name}</p>
+                    {isEditing && editedEstimate.is_new_client ? (
+                      <input
+                        type="text"
+                        value={editedEstimate.full_name}
+                        onChange={(e) => updateField('full_name', e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.full_name}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Phone:</span>
-                  <p className="text-sm text-gray-900">{estimate.phone_number}</p>
+                    {isEditing && editedEstimate.is_new_client ? (
+                      <input
+                        type="text"
+                        value={editedEstimate.phone_number}
+                        onChange={(e) => updateField('phone_number', e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.phone_number}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Email:</span>
-                  <p className="text-sm text-gray-900">{estimate.email_address}</p>
+                    {isEditing && editedEstimate.is_new_client ? (
+                      <input
+                        type="email"
+                        value={editedEstimate.email_address}
+                        onChange={(e) => updateField('email_address', e.target.value)}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.email_address}</p>
+                    )}
                   </div>
                   <div>
                   <span className="text-sm font-medium text-gray-700">OK to Text:</span>
-                  <p className="text-sm text-gray-900">{estimate.ok_to_text ? 'Yes' : 'No'}</p>
+                  {isEditing && editedEstimate.is_new_client ? (
+                    <select
+                      value={editedEstimate.ok_to_text ? 'true' : 'false'}
+                      onChange={(e) => updateField('ok_to_text', e.target.value === 'true')}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="true">Yes</option>
+                      <option value="false">No</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.ok_to_text ? 'Yes' : 'No'}</p>
+                  )}
                   </div>
                   <div>
                   <span className="text-sm font-medium text-gray-700">How did you hear about us:</span>
-                  <p className="text-sm text-gray-900">{estimate.how_did_you_hear || 'N/A'}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedEstimate.how_did_you_hear || ''}
+                      onChange={(e) => updateField('how_did_you_hear', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.how_did_you_hear || 'N/A'}</p>
+                  )}
                   </div>
                   </div>
                 </div>
@@ -2022,39 +2199,138 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                   <span className="text-sm font-medium text-gray-700">Service Address:</span>
-                  <p className="text-sm text-gray-900">{estimate.service_address}</p>
+                  {isEditing ? (
+                    <textarea
+                      value={editedEstimate.service_address}
+                      onChange={(e) => updateField('service_address', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={2}
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.service_address}</p>
+                  )}
                   </div>
                   <div>
                   <span className="text-sm font-medium text-gray-700">Gate Code:</span>
-                  <p className="text-sm text-gray-900">{estimate.gate_code || 'No gate code'}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedEstimate.gate_code || ''}
+                      onChange={(e) => updateField('gate_code', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.gate_code || 'No gate code'}</p>
+                  )}
                   </div>
                   <div>
                   <span className="text-sm font-medium text-gray-700">Apartment/Unit:</span>
-                  <p className="text-sm text-gray-900">{estimate.apartment_unit || 'N/A'}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedEstimate.apartment_unit || ''}
+                      onChange={(e) => updateField('apartment_unit', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.apartment_unit || 'N/A'}</p>
+                  )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Location on Property:</span>
-                  <p className="text-sm text-gray-900">{estimate.location_on_property}</p>
+                  {isEditing ? (
+                    <select
+                      value={editedEstimate.location_on_property}
+                      onChange={(e) => updateField('location_on_property', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Curbside">Curbside</option>
+                      <option value="Inside House">Inside House</option>
+                      <option value="Garage">Garage</option>
+                      <option value="Upstairs">Upstairs</option>
+                      <option value="Backyard">Backyard</option>
+                      <option value="Basement">Basement</option>
+                      <option value="Attic">Attic</option>
+                      <option value="Mixed">Mixed</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.location_on_property}</p>
+                  )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Approximate Volume:</span>
-                  <p className="text-sm text-gray-900">{estimate.approximate_volume}</p>
+                  {isEditing ? (
+                    <select
+                      value={editedEstimate.approximate_volume}
+                      onChange={(e) => updateField('approximate_volume', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="Small Load (1-2 items)">Small Load (1-2 items)</option>
+                      <option value="Half Truck">Half Truck</option>
+                      <option value="Full Truck">Full Truck</option>
+                      <option value="Multiple Trucks">Multiple Trucks</option>
+                      <option value="Unsure">Unsure</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.approximate_volume}</p>
+                  )}
                 </div>
                 <div>
                   <span className="text-sm font-medium text-gray-700">Approximate Item Count:</span>
-                  <p className="text-sm text-gray-900">{estimate.approximate_item_count || 'Not specified'}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editedEstimate.approximate_item_count || ''}
+                      onChange={(e) => updateField('approximate_item_count', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.approximate_item_count || 'Not specified'}</p>
+                  )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Access Considerations:</span>
-                  <p className="text-sm text-gray-900">{estimate.access_considerations || 'None specified'}</p>
+                  {isEditing ? (
+                    <textarea
+                      value={editedEstimate.access_considerations || ''}
+                      onChange={(e) => updateField('access_considerations', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows={2}
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.access_considerations || 'None specified'}</p>
+                  )}
                   </div>
                 <div>
                   <span className="text-sm font-medium text-gray-700">Preferred Date:</span>
-                  <p className="text-sm text-gray-900">{estimate.preferred_date ? new Date(estimate.preferred_date).toLocaleDateString() : 'Not specified'}</p>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editedEstimate.preferred_date || ''}
+                      onChange={(e) => updateField('preferred_date', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.preferred_date ? new Date(editedEstimate.preferred_date).toLocaleDateString() : 'Not specified'}</p>
+                  )}
                 </div>
                 <div>
                   <span className="text-sm font-medium text-gray-700">Preferred Time:</span>
-                  <p className="text-sm text-gray-900">{estimate.preferred_time || 'Not specified'}</p>
+                  {isEditing ? (
+                    <select
+                      value={editedEstimate.preferred_time || ''}
+                      onChange={(e) => updateField('preferred_time', e.target.value)}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">Select time</option>
+                      <option value="morning">Morning</option>
+                      <option value="afternoon">Afternoon</option>
+                      <option value="evening">Evening</option>
+                      <option value="anytime">Anytime</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.preferred_time || 'Not specified'}</p>
+                  )}
                 </div>
               </div>
                 </div>
@@ -2083,43 +2359,153 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm font-medium text-gray-700">Items filled with water:</span>
-                  <p className="text-sm text-gray-900">{estimate.items_filled_water ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.items_filled_water ? 'true' : 'false'}
+                        onChange={(e) => updateField('items_filled_water', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.items_filled_water ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Items filled with oil/fuel:</span>
-                  <p className="text-sm text-gray-900">{estimate.items_filled_oil_fuel ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.items_filled_oil_fuel ? 'true' : 'false'}
+                        onChange={(e) => updateField('items_filled_oil_fuel', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.items_filled_oil_fuel ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Hazardous materials:</span>
-                  <p className="text-sm text-gray-900">{estimate.hazardous_materials ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.hazardous_materials ? 'true' : 'false'}
+                        onChange={(e) => updateField('hazardous_materials', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.hazardous_materials ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Items tied in bags:</span>
-                  <p className="text-sm text-gray-900">{estimate.items_tied_bags ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.items_tied_bags ? 'true' : 'false'}
+                        onChange={(e) => updateField('items_tied_bags', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.items_tied_bags ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Oversized items:</span>
-                  <p className="text-sm text-gray-900">{estimate.oversized_items ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.oversized_items ? 'true' : 'false'}
+                        onChange={(e) => updateField('oversized_items', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.oversized_items ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Mold present:</span>
-                  <p className="text-sm text-gray-900">{estimate.mold_present ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.mold_present ? 'true' : 'false'}
+                        onChange={(e) => updateField('mold_present', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.mold_present ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Pests present:</span>
-                  <p className="text-sm text-gray-900">{estimate.pests_present ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.pests_present ? 'true' : 'false'}
+                        onChange={(e) => updateField('pests_present', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.pests_present ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                   <span className="text-sm font-medium text-gray-700">Sharp objects:</span>
-                  <p className="text-sm text-gray-900">{estimate.sharp_objects ? 'Yes' : 'No'}</p>
+                  {isEditing ? (
+                    <select
+                      value={editedEstimate.sharp_objects ? 'true' : 'false'}
+                      onChange={(e) => updateField('sharp_objects', e.target.value === 'true')}
+                      className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="false">No</option>
+                      <option value="true">Yes</option>
+                    </select>
+                  ) : (
+                    <p className="text-sm text-gray-900">{editedEstimate.sharp_objects ? 'Yes' : 'No'}</p>
+                  )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Heavy lifting required:</span>
-                  <p className="text-sm text-gray-900">{estimate.heavy_lifting_required ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.heavy_lifting_required ? 'true' : 'false'}
+                        onChange={(e) => updateField('heavy_lifting_required', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.heavy_lifting_required ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Disassembly required:</span>
-                  <p className="text-sm text-gray-900">{estimate.disassembly_required ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.disassembly_required ? 'true' : 'false'}
+                        onChange={(e) => updateField('disassembly_required', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.disassembly_required ? 'Yes' : 'No'}</p>
+                    )}
                 </div>
                   </div>
                 </div>
@@ -2132,44 +2518,96 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <span className="text-sm font-medium text-gray-700">Donation pickup:</span>
-                  <p className="text-sm text-gray-900">{estimate.request_donation_pickup ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.request_donation_pickup ? 'true' : 'false'}
+                        onChange={(e) => updateField('request_donation_pickup', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.request_donation_pickup ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
                   <div>
                     <span className="text-sm font-medium text-gray-700">Demolition add-on:</span>
-                  <p className="text-sm text-gray-900">{estimate.request_demolition_addon ? 'Yes' : 'No'}</p>
+                    {isEditing ? (
+                      <select
+                        value={editedEstimate.request_demolition_addon ? 'true' : 'false'}
+                        onChange={(e) => updateField('request_demolition_addon', e.target.value === 'true')}
+                        className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="false">No</option>
+                        <option value="true">Yes</option>
+                      </select>
+                    ) : (
+                      <p className="text-sm text-gray-900">{editedEstimate.request_demolition_addon ? 'Yes' : 'No'}</p>
+                    )}
                   </div>
               </div>
             </div>
           </div>
 
           {/* Quote Information */}
-          {estimate.quote_amount && (
-                  <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quote Information</h3>
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span className="text-sm font-medium text-green-700">Quote Amount:</span>
-                    <p className="text-2xl font-bold text-green-900">${estimate.quote_amount.toLocaleString()}</p>
-                  </div>
-                  <div>
-                    <span className="text-sm font-medium text-green-700">Quote Notes:</span>
-                    <p className="text-sm text-green-900">{estimate.quote_notes || 'No additional notes'}</p>
-                  </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quote Information</h3>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <span className="text-sm font-medium text-green-700">Quote Amount:</span>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editedEstimate.quote_amount || ''}
+                      onChange={(e) => updateField('quote_amount', Number(e.target.value))}
+                      className="w-full px-3 py-2 text-lg font-bold border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="Enter quote amount"
+                    />
+                  ) : (
+                    <p className="text-2xl font-bold text-green-900">
+                      {editedEstimate.quote_amount ? `$${editedEstimate.quote_amount.toLocaleString()}` : 'Not quoted yet'}
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <span className="text-sm font-medium text-green-700">Quote Notes:</span>
+                  {isEditing ? (
+                    <textarea
+                      value={editedEstimate.quote_notes || ''}
+                      onChange={(e) => updateField('quote_notes', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      rows={3}
+                      placeholder="Enter quote notes..."
+                    />
+                  ) : (
+                    <p className="text-sm text-green-900">{editedEstimate.quote_notes || 'No additional notes'}</p>
+                  )}
                 </div>
               </div>
-                </div>
-              )}
+            </div>
+          </div>
 
           {/* Additional Notes */}
-          {estimate.additional_notes && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Notes</h3>
-              <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-900">{estimate.additional_notes}</p>
-              </div>
-                </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Additional Notes</h3>
+            <div className="bg-gray-50 rounded-lg p-4">
+              {isEditing ? (
+                <textarea
+                  value={editedEstimate.additional_notes || ''}
+                  onChange={(e) => updateField('additional_notes', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={4}
+                  placeholder="Enter any additional notes..."
+                />
+              ) : (
+                <p className="text-sm text-gray-900">{editedEstimate.additional_notes || 'No additional notes'}</p>
               )}
+            </div>
+          </div>
 
               {/* Photos & Media */}
           {(estimate.photos && estimate.photos.length > 0) || (estimate.videos && estimate.videos.length > 0) ? (
