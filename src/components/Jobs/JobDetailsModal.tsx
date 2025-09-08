@@ -49,9 +49,7 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'details' | 'items' | 'notes' | 'history' | 'estimate'>('details');
-  const [items, setItems] = useState<JobItem[]>([]);
-  const [notes, setNotes] = useState<JobNote[]>([]);
+  const [activeTab, setActiveTab] = useState<'details' | 'history' | 'estimate'>('details');
   const [statusHistory, setStatusHistory] = useState<StatusHistoryEntry[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [estimate, setEstimate] = useState<EstimateRequest | null>(null);
@@ -107,8 +105,6 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
     try {
       const response = await jobsService.getDetailedJob(job.id);
       const detailedJobData = response.data.job;
-      setItems(detailedJobData.items || []);
-      setNotes(detailedJobData.notes || []);
       setStatusHistory(detailedJobData.status_history || []);
     } catch (err: any) {
       console.error('Error loading detailed job:', err);
@@ -344,28 +340,6 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
               }`}
             >
               Details
-            </button>
-            <button
-              onClick={() => setActiveTab('items')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-1 ${
-                activeTab === 'items'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Package className="w-4 h-4" />
-              <span>Items ({items.length})</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('notes')}
-              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-1 ${
-                activeTab === 'notes'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <StickyNote className="w-4 h-4" />
-              <span>Notes ({notes.length})</span>
             </button>
             <button
               onClick={() => setActiveTab('history')}
@@ -606,137 +580,6 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                 </div>
               )}
 
-              {/* Items Tab */}
-              {activeTab === 'items' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">Job Items</h3>
-                    <button 
-                      onClick={handleAddItem}
-                      className="flex items-center space-x-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Item</span>
-                    </button>
-                  </div>
-                  
-                  {items.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <Package className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No items added to this job yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {items.map((item) => (
-                        <div key={item.id} className="bg-gray-50 rounded-lg p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium text-gray-900">{item.name}</h4>
-                              <p className="text-sm text-gray-600">{item.category}</p>
-                              <div className="flex items-center space-x-4 mt-2 text-sm text-gray-500">
-                                <span>Qty: {item.quantity}</span>
-                                <span>Price: ${item.base_price}</span>
-                                <span>Time: {item.estimated_time}min</span>
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  item.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                                  item.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-red-100 text-red-800'
-                                }`}>
-                                  {item.difficulty}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <button 
-                                onClick={() => handleEditItem(item)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteItem(item.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Notes Tab */}
-              {activeTab === 'notes' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-medium text-gray-900">Job Notes</h3>
-                    <button 
-                      onClick={handleAddNote}
-                      className="flex items-center space-x-2 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Add Note</span>
-                    </button>
-                  </div>
-                  
-                  {notes.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                      <StickyNote className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                      <p>No notes added to this job yet.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {notes.map((note) => (
-                        <div key={note.id} className={`rounded-lg p-4 ${note.is_important ? 'bg-yellow-50 border-l-4 border-yellow-400' : 'bg-gray-50'}`}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2 mb-2">
-                                <span className={`px-2 py-1 rounded-full text-xs ${
-                                  note.note_type === 'general' ? 'bg-gray-100 text-gray-800' :
-                                  note.note_type === 'customer_communication' ? 'bg-blue-100 text-blue-800' :
-                                  note.note_type === 'internal' ? 'bg-purple-100 text-purple-800' :
-                                  note.note_type === 'issue' ? 'bg-red-100 text-red-800' :
-                                  'bg-green-100 text-green-800'
-                                }`}>
-                                  {note.note_type.replace('_', ' ')}
-                                </span>
-                                {note.is_important && (
-                                  <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                                    Important
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-gray-900 mb-2">{note.content}</p>
-                              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                                <span>By: {note.employee_name || `${note.employee_first_name} ${note.employee_last_name}`}</span>
-                                <span>•</span>
-                                <span>{new Date(note.created_at).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <button 
-                                onClick={() => handleEditNote(note)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteNote(note.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              >
-                                <Trash className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* History Tab */}
               {activeTab === 'history' && (

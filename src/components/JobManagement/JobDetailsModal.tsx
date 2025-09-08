@@ -23,7 +23,6 @@ interface JobDetailsModalProps {
 
 const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ job, onClose, onUpdateJob }) => {
   const [status, setStatus] = useState(job.status);
-  const [notes, setNotes] = useState(job.notes);
   const [actualTotal, setActualTotal] = useState(job.actualTotal || job.totalEstimate);
 
   const handleStatusChange = (newStatus: string) => {
@@ -34,7 +33,6 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ job, onClose, onUpdat
   const handleSaveChanges = () => {
     onUpdateJob(job.id, {
       status,
-      notes,
       actualTotal: actualTotal
     });
     onClose();
@@ -142,26 +140,6 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ job, onClose, onUpdat
             </div>
           </div>
 
-          {/* Items */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Items to Remove</h3>
-            <div className="space-y-2">
-              {job.items.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      Quantity: {item.quantity} • {item.difficulty} difficulty
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-medium text-gray-900">${item.basePrice * item.quantity}</p>
-                    <p className="text-sm text-gray-500">${item.basePrice} each</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
 
           {/* Status Update */}
           <div>
@@ -198,17 +176,6 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ job, onClose, onUpdat
             </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Notes</h3>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Add job notes..."
-            />
-          </div>
 
           {/* Photos */}
           <div>

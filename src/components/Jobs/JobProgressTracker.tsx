@@ -268,7 +268,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
             <p className="text-gray-600">Time Slot:</p>
             <p className="font-medium">{job.timeSlot}</p>
           </div>
-          <div>
+          <div style={{display: 'none'}}>
             <p className="text-gray-600">Items:</p>
             <p className="font-medium">{job.items.length} items</p>
           </div>
@@ -279,7 +279,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
         </div>
 
         {job.notes && (
-          <div className="mt-3">
+          <div className="mt-3" style={{display: 'none'}}>
             <p className="text-gray-600 text-sm">Notes:</p>
             <p className="text-sm break-words">{job.notes}</p>
           </div>

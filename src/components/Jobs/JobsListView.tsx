@@ -189,7 +189,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
 
                   <div className="flex flex-col sm:flex-col-reverse sm:items-end space-y-2 sm:space-y-0">
                     <div className="flex flex-col sm:items-end text-sm text-gray-500 space-y-1">
-                      <div>{job.items?.length || 0} items</div>
+                      <div style={{display: 'none'}}>{job.items?.length || 0} items</div>
                       <div>{job.estimatedHours || 2}h estimated</div>
                     </div>
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">

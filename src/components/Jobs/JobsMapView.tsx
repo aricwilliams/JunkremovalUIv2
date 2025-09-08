@@ -529,7 +529,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
               </div>
 
               {(selectedJob.description || selectedJob.notes) && (
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600" style={{display: 'none'}}>
                   <p className="font-medium mb-1">Notes:</p>
                   <p className="break-words">{selectedJob.description || selectedJob.notes}</p>
                 </div>
