@@ -55,6 +55,35 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [jobsWithCoordinates, setJobsWithCoordinates] = useState<JobWithCoordinates[]>([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [isMapMoving, setIsMapMoving] = useState(false);
+  const gotoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Safe goTo function with debouncing and error handling
+  const safeGoTo = (target: any, options: any = {}) => {
+    if (!mapInstanceRef.current) return;
+    
+    // Clear any pending goTo calls
+    if (gotoTimerRef.current) {
+      clearTimeout(gotoTimerRef.current);
+    }
+    
+    // Debounce the goTo call
+    gotoTimerRef.current = setTimeout(() => {
+      if (isMapMoving) return; // Don't start a new move if one is in progress
+      
+      setIsMapMoving(true);
+      mapInstanceRef.current.goTo(target, { animate: false, ...options })
+        .catch((err: any) => {
+          // Ignore expected cancellation errors
+          if (err?.name !== 'view:goto-interrupted' && err?.name !== 'AbortError') {
+            console.error('Map navigation error:', err);
+          }
+        })
+        .finally(() => {
+          setIsMapMoving(false);
+        });
+    }, 100); // 100ms debounce
+  };
 
   // Format address for better geocoding
   const formatAddressForGeocoding = (address: string): string => {
@@ -150,7 +179,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
           address: firstJob.service_address,
           coordinates: [firstJob.longitude, firstJob.latitude]
         });
-        mapInstanceRef.current.goTo({
+        safeGoTo({
           center: [firstJob.longitude, firstJob.latitude],
           zoom: 14
         });
@@ -215,7 +244,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
       const defaultCenter = getDefaultCenter();
       const defaultZoom = 14;
 
-      mapInstanceRef.current.goTo({
+      safeGoTo({
         center: defaultCenter,
         zoom: defaultZoom
       });
@@ -225,7 +254,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
       console.log('🗺️ Map reset to default view:', {
         center: defaultCenter,
         zoom: defaultZoom,
-        hasJobs: jobs.filter(job => job.latitude && job.longitude).length > 0
+        hasJobs: jobsWithCoordinates.length > 0
       });
     }
   };
@@ -244,7 +273,14 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
   // Update map markers when geocoded jobs are available
   useEffect(() => {
+    console.log('useEffect triggered for jobsWithCoordinates:', {
+      jobsCount: jobsWithCoordinates.length,
+      hasUpdateMarkers: !!window.updateMarkers,
+      hasMap: !!mapInstanceRef.current
+    });
+    
     if (jobsWithCoordinates.length > 0 && window.updateMarkers) {
+      console.log('Calling updateMarkers...');
       window.updateMarkers();
       
       // Also try to center the map here as a fallback
@@ -254,11 +290,16 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
           address: firstJob.service_address,
           coordinates: [firstJob.longitude, firstJob.latitude]
         });
-        mapInstanceRef.current.goTo({
+        safeGoTo({
           center: [firstJob.longitude, firstJob.latitude],
           zoom: 14
         });
       }
+    } else {
+      console.log('Not calling updateMarkers because:', {
+        noJobs: jobsWithCoordinates.length === 0,
+        noUpdateFunction: !window.updateMarkers
+      });
     }
   }, [jobsWithCoordinates]);
 
@@ -384,12 +425,23 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
         // Add job markers function
         const addJobMarkers = () => {
-          if (!graphicsLayerRef.current) return;
+          if (!graphicsLayerRef.current) {
+            console.log('No graphics layer available');
+            return;
+          }
 
+          console.log('Adding markers for jobs:', filteredJobs.length);
+          
           // Clear existing graphics
           graphicsLayerRef.current.removeAll();
 
-          filteredJobs.forEach((job) => {
+          filteredJobs.forEach((job, index) => {
+            console.log(`Adding marker ${index + 1}:`, {
+              id: job.id,
+              address: job.service_address,
+              coordinates: [job.longitude, job.latitude]
+            });
+            
             // Use the geocoded coordinates from the coordinate service
             const point = new Point({
               longitude: job.longitude,
@@ -414,6 +466,8 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
             graphicsLayerRef.current!.add(graphic);
           });
+          
+          console.log(`Added ${filteredJobs.length} markers to map`);
         };
 
         // Store update function globally
@@ -517,6 +571,11 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
+      // Clear any pending goTo timer
+      if (gotoTimerRef.current) {
+        clearTimeout(gotoTimerRef.current);
+      }
+      
       if (mapInstanceRef.current) {
         mapInstanceRef.current.destroy();
         mapInstanceRef.current = null;
