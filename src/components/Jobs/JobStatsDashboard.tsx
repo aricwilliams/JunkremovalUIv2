@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { jobsService, JobStats } from '../../services/jobsService';
+import React, { useMemo } from 'react';
+import { useApp } from '../../contexts/AppContext';
 import {
   BarChart3,
   Calendar,
@@ -13,27 +13,67 @@ import {
 } from 'lucide-react';
 
 const JobStatsDashboard: React.FC = () => {
-  const [stats, setStats] = useState<JobStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { estimates, loading, error } = useApp();
 
-  useEffect(() => {
-    loadStats();
-  }, []);
-
-  const loadStats = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await jobsService.getJobStats();
-      setStats(response.data.stats);
-    } catch (err: any) {
-      console.error('Error loading job stats:', err);
-      setError(err.message || 'Failed to load job statistics');
-    } finally {
-      setLoading(false);
+  // Calculate statistics from estimates data
+  const stats = useMemo(() => {
+    if (!estimates || estimates.length === 0) {
+      return {
+        total_jobs: 0,
+        total_revenue: 0,
+        average_job_value: 0,
+        completed_jobs: 0,
+        scheduled_jobs: 0,
+        in_progress_jobs: 0,
+        cancelled_jobs: 0,
+        jobs_today: 0,
+        scheduled_today: 0
+      };
     }
-  };
+
+    // Filter for actual jobs (estimates with amount > 0 and job statuses)
+    const jobs = estimates.filter(estimate => 
+      estimate.amount && estimate.amount > 0 && 
+      (estimate.status === 'accepted' || 
+       estimate.status === 'scheduled' || 
+       estimate.status === 'in progress' || 
+       estimate.status === 'completed' || 
+       estimate.status === 'cancelled')
+    );
+
+    const total_jobs = jobs.length;
+    const total_revenue = jobs.reduce((sum, job) => sum + (job.amount || 0), 0);
+    const average_job_value = total_jobs > 0 ? total_revenue / total_jobs : 0;
+
+    // Count by status
+    const completed_jobs = jobs.filter(job => job.status === 'completed').length;
+    const scheduled_jobs = jobs.filter(job => job.status === 'scheduled').length;
+    const in_progress_jobs = jobs.filter(job => job.status === 'in progress').length;
+    const cancelled_jobs = jobs.filter(job => job.status === 'cancelled').length;
+
+    // Today's activity
+    const today = new Date().toISOString().split('T')[0];
+    const jobs_today = jobs.filter(job => 
+      job.preferred_date && job.preferred_date.startsWith(today)
+    ).length;
+    const scheduled_today = jobs.filter(job => 
+      job.status === 'scheduled' && 
+      job.preferred_date && 
+      job.preferred_date.startsWith(today)
+    ).length;
+
+    return {
+      total_jobs,
+      total_revenue,
+      average_job_value,
+      completed_jobs,
+      scheduled_jobs,
+      in_progress_jobs,
+      cancelled_jobs,
+      jobs_today,
+      scheduled_today
+    };
+  }, [estimates]);
 
   if (loading) {
     return (
@@ -51,21 +91,15 @@ const JobStatsDashboard: React.FC = () => {
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
         <p className="text-red-600 mb-4">{error}</p>
-        <button
-          onClick={loadStats}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          Retry
-        </button>
       </div>
     );
   }
 
-  if (!stats) {
+  if (!estimates || estimates.length === 0) {
     return (
       <div className="text-center py-12">
         <BarChart3 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-        <p className="text-gray-500">No statistics available</p>
+        <p className="text-gray-500">No estimates data available</p>
       </div>
     );
   }
@@ -80,13 +114,10 @@ const JobStatsDashboard: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-900">Job Statistics</h2>
           <p className="text-gray-600">Overview of your job performance and metrics</p>
         </div>
-        <button
-          onClick={loadStats}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
+        <div className="flex items-center space-x-2 text-sm text-gray-500">
           <TrendingUp className="w-4 h-4" />
-          <span>Refresh</span>
-        </button>
+          <span>Real-time data from estimates</span>
+        </div>
       </div>
 
       {/* Stats Grid */}
