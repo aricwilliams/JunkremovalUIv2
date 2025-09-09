@@ -1,15 +1,25 @@
 import React, { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
+import { EstimateRequest } from '../../types';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import JobDetailsModal from '../Jobs/JobDetailsModal';
 import CreateJobForm from '../Jobs/CreateJobForm';
 
 const CalendarView: React.FC = () => {
-  const { jobs, updateJob } = useApp();
+  const { estimates, refreshEstimates } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedJob, setSelectedJob] = useState(null);
+  const [selectedJob, setSelectedJob] = useState<EstimateRequest | null>(null);
   const [showJobModal, setShowJobModal] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // Filter estimates to show jobs with various statuses (same as JobsView)
+  const jobs = estimates.filter(estimate => 
+    estimate.status === 'accepted' ||
+    estimate.status === 'scheduled' ||
+    estimate.status === 'in progress' ||
+    estimate.status === 'completed' ||
+    estimate.status === 'cancelled'
+  );
 
   const getDaysInMonth = (date: Date) => {
     return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
@@ -21,8 +31,12 @@ const CalendarView: React.FC = () => {
 
   const getJobsForDate = (date: Date) => {
     return jobs.filter(job => {
-      const jobDate = new Date(job.scheduled_date);
-      return jobDate.toDateString() === date.toDateString();
+      // Use preferred_date from estimate data
+      if (job.preferred_date) {
+        const jobDate = new Date(job.preferred_date);
+        return jobDate.toDateString() === date.toDateString();
+      }
+      return false;
     });
   };
 
@@ -53,9 +67,10 @@ const CalendarView: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'accepted': return 'bg-green-500';
       case 'scheduled': return 'bg-blue-500';
-      case 'in_progress': return 'bg-orange-500';
-      case 'completed': return 'bg-green-500';
+      case 'in progress': return 'bg-orange-500';
+      case 'completed': return 'bg-green-600';
       case 'cancelled': return 'bg-red-500';
       default: return 'bg-gray-500';
     }
@@ -81,8 +96,11 @@ const CalendarView: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar</h1>
           <p className="text-sm text-gray-600 mt-1">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()} - {jobs.filter(job => {
-              const jobDate = new Date(job.scheduled_date);
-              return jobDate.getMonth() === currentDate.getMonth() && jobDate.getFullYear() === currentDate.getFullYear();
+              if (job.preferred_date) {
+                const jobDate = new Date(job.preferred_date);
+                return jobDate.getMonth() === currentDate.getMonth() && jobDate.getFullYear() === currentDate.getFullYear();
+              }
+              return false;
             }).length} jobs scheduled
           </p>
         </div>
@@ -125,6 +143,10 @@ const CalendarView: React.FC = () => {
               {/* Status Legend */}
               <div className="flex flex-wrap gap-2 mb-3 sm:mb-4 text-xs">
                 <div className="flex items-center space-x-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span>Accepted</span>
+                </div>
+                <div className="flex items-center space-x-1">
                   <div className="w-3 h-3 bg-blue-500 rounded"></div>
                   <span>Scheduled</span>
                 </div>
@@ -133,7 +155,7 @@ const CalendarView: React.FC = () => {
                   <span>In Progress</span>
                 </div>
                 <div className="flex items-center space-x-1">
-                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <div className="w-3 h-3 bg-green-600 rounded"></div>
                   <span>Completed</span>
                 </div>
                 <div className="flex items-center space-x-1">
@@ -182,15 +204,15 @@ const CalendarView: React.FC = () => {
 
                       <div className="space-y-1">
                         {dayJobs.slice(0, 2).map(job => {
-                          const jobTime = new Date(job.scheduled_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          const jobTime = job.preferred_time || 'No time set';
                           return (
                             <div
                               key={job.id}
                               className={`text-xs px-1 sm:px-2 py-1 rounded text-white truncate cursor-pointer ${getStatusColor(job.status)}`}
                               onClick={() => handleJobClick(job)}
-                              title={`${jobTime} - ${job.title} - ${job.customer?.name || 'Unknown Customer'}`}
+                              title={`${jobTime} - ${job.full_name || 'Unknown Customer'} - ${job.service_address}`}
                             >
-                              <div className="truncate">{job.title}</div>
+                              <div className="truncate">{job.full_name || 'Unknown Customer'}</div>
                               <div className="text-xs opacity-75">{jobTime}</div>
                             </div>
                           );
@@ -220,11 +242,14 @@ const CalendarView: React.FC = () => {
             setSelectedJob(null);
           }}
           onJobUpdated={(updatedJob) => {
-            updateJob(updatedJob.id.toString(), updatedJob);
+            // Refresh estimates data after update
+            refreshEstimates();
           }}
           onJobDeleted={() => {
             setShowJobModal(false);
             setSelectedJob(null);
+            // Refresh estimates data after deletion
+            refreshEstimates();
           }}
         />
       )}

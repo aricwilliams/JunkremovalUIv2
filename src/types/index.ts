@@ -62,7 +62,7 @@ export interface EstimateRequest {
   request_demolition_addon: boolean;
   how_did_you_hear?: string;
   request_priority: 'standard' | 'urgent' | 'low';
-  status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired';
+  status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | 'scheduled' | 'in progress' | 'completed' | 'cancelled';
   quote_amount?: number;
   quote_notes?: string;
   created_at: string;
