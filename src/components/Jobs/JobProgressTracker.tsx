@@ -11,7 +11,8 @@ import {
   Send,
   AlertCircle,
   Truck,
-  Star
+  Star,
+  DollarSign
 } from 'lucide-react';
 
 interface JobProgressTrackerProps {
@@ -24,10 +25,10 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
   const [notificationSent, setNotificationSent] = useState(false);
 
   const statusSteps = [
-    { key: 'pending', label: 'Pending', icon: Clock, color: 'text-gray-600', bgColor: 'bg-gray-50', borderColor: 'border-gray-200' },
-    { key: 'quoted', label: 'Quoted', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
-    { key: 'scheduled', label: 'Scheduled', icon: Play, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
-    { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
+    { key: 'need review', label: 'Need Review', icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+    { key: 'reviewed', label: 'Reviewed', icon: CheckCircle, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+    { key: 'quoted', label: 'Quoted', icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
+    { key: 'accepted', label: 'Accepted', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
   ];
 
   const currentStepIndex = statusSteps.findIndex(step => step.key === job.status);

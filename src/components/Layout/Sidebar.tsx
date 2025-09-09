@@ -24,7 +24,14 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const { currentView, setCurrentView, jobs, leads, analytics } = useApp();
+  const { currentView, setCurrentView, estimates, leads, analytics } = useApp();
+  
+  // Filter estimates to only show actual jobs (where amount is not null and not 0)
+  const jobs = estimates.filter(estimate => 
+    estimate.amount !== null && 
+    estimate.amount !== undefined && 
+    parseFloat(estimate.amount.toString()) > 0
+  );
 
   const menuItems = [
     {
@@ -37,7 +44,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       id: 'jobs',
       label: 'Jobs',
       icon: Briefcase,
-      badge: jobs.filter(j => j.status === 'scheduled' || j.status === 'in-progress').length
+      badge: jobs.filter(j => j.status === 'quoted' || j.status === 'accepted' || j.status === 'reviewed').length
     },
 
     {

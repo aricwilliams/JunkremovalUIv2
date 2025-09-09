@@ -90,14 +90,20 @@ const JobsListView: React.FC<JobsListViewProps> = ({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800';
-      case 'in-progress':
+      case 'pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
+      case 'need review':
+        return 'bg-orange-100 text-orange-800';
+      case 'reviewed':
+        return 'bg-blue-100 text-blue-800';
+      case 'quoted':
+        return 'bg-purple-100 text-purple-800';
+      case 'accepted':
         return 'bg-green-100 text-green-800';
-      case 'cancelled':
+      case 'declined':
         return 'bg-red-100 text-red-800';
+      case 'expired':
+        return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -105,14 +111,20 @@ const JobsListView: React.FC<JobsListViewProps> = ({
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'scheduled':
-        return <Calendar className="w-4 h-4" />;
-      case 'in-progress':
-        return <Play className="w-4 h-4" />;
-      case 'completed':
+      case 'pending':
+        return <Clock className="w-4 h-4" />;
+      case 'need review':
+        return <AlertCircle className="w-4 h-4" />;
+      case 'reviewed':
         return <CheckCircle className="w-4 h-4" />;
-      case 'cancelled':
+      case 'quoted':
+        return <DollarSign className="w-4 h-4" />;
+      case 'accepted':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'declined':
         return <X className="w-4 h-4" />;
+      case 'expired':
+        return <Clock className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
     }
@@ -167,9 +179,9 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
                         {job.full_name || 'Unknown Customer'} - #{job.id}
                       </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status || 'pending')}`}>
-                        {getStatusIcon(job.status || 'pending')}
-                        <span className="ml-1 capitalize">{(job.status || 'pending').replace('-', ' ')}</span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status || 'need review')}`}>
+                        {getStatusIcon(job.status || 'need review')}
+                        <span className="ml-1 capitalize">{(job.status || 'need review').replace('-', ' ')}</span>
                       </span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         job.request_priority === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'

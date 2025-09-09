@@ -18,7 +18,8 @@ import {
   Info,
   AlertTriangle,
   UserPlus,
-  RefreshCw
+  RefreshCw,
+  Send
 } from 'lucide-react';
 import { Estimate, PricingItem, Customer } from '../../types';
 import { EstimateRequest, estimatesService } from '../../services/estimatesService';
@@ -150,6 +151,7 @@ const EstimatesDashboard: React.FC = () => {
   const getEstimateStatusColor = (status: string | null | undefined) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'need review': return 'bg-orange-100 text-orange-800';
       case 'reviewed': return 'bg-blue-100 text-blue-800';
       case 'quoted': return 'bg-purple-100 text-purple-800';
       case 'accepted': return 'bg-green-100 text-green-800';
@@ -191,6 +193,83 @@ const EstimatesDashboard: React.FC = () => {
       await generateSimpleQuotePDF(estimate);
     } catch (error) {
       console.error('Failed to generate simple quote PDF:', error);
+    }
+  };
+
+  const handleSendToCustomer = async (estimate: EstimateRequest) => {
+    try {
+      console.log('Sending estimate to customer for review:', estimate.id);
+      
+      // Clean up phone number format (remove dashes, spaces, parentheses)
+      const cleanPhoneNumber = estimate.phone_number?.replace(/[\s\-\(\)]/g, '') || '';
+
+      // Convert preferred_date from ISO timestamp to YYYY-MM-DD format for MySQL
+      const formatDateForMySQL = (dateString: string | undefined): string | undefined => {
+        if (!dateString) return undefined;
+        try {
+          const date = new Date(dateString);
+          return date.toISOString().split('T')[0]; // Extract YYYY-MM-DD part
+        } catch (error) {
+          console.warn('Invalid date format:', dateString);
+          return undefined;
+        }
+      };
+
+      // Update with all required fields (same pattern as other estimate updates)
+      await estimatesService.updateEstimate(
+        estimate.id,
+        {
+          // REQUIRED FIELDS - Must include all of these
+          full_name: estimate.full_name,
+          phone_number: cleanPhoneNumber,
+          email_address: estimate.email_address,
+          service_address: estimate.service_address,
+          location_on_property: estimate.location_on_property,
+          approximate_volume: estimate.approximate_volume,
+          material_types: estimate.material_types,
+          
+          // OPTIONAL FIELDS - Include existing values (convert numeric booleans to actual booleans)
+          is_new_client: Boolean(estimate.is_new_client),
+          existing_client_id: estimate.existing_client_id,
+          ok_to_text: Boolean(estimate.ok_to_text),
+          gate_code: estimate.gate_code,
+          apartment_unit: estimate.apartment_unit,
+          preferred_date: estimate.preferred_date ? formatDateForMySQL(estimate.preferred_date) : null,
+          preferred_time: estimate.preferred_time,
+          access_considerations: estimate.access_considerations,
+          photos: estimate.photos,
+          videos: estimate.videos,
+          approximate_item_count: estimate.approximate_item_count,
+          items_filled_water: Boolean(estimate.items_filled_water),
+          items_filled_oil_fuel: Boolean(estimate.items_filled_oil_fuel),
+          hazardous_materials: Boolean(estimate.hazardous_materials),
+          items_tied_bags: Boolean(estimate.items_tied_bags),
+          oversized_items: Boolean(estimate.oversized_items),
+          mold_present: Boolean(estimate.mold_present),
+          pests_present: Boolean(estimate.pests_present),
+          sharp_objects: Boolean(estimate.sharp_objects),
+          heavy_lifting_required: Boolean(estimate.heavy_lifting_required),
+          disassembly_required: Boolean(estimate.disassembly_required),
+          additional_notes: estimate.additional_notes,
+          request_donation_pickup: Boolean(estimate.request_donation_pickup),
+          request_demolition_addon: Boolean(estimate.request_demolition_addon),
+          how_did_you_hear: estimate.how_did_you_hear,
+          request_priority: estimate.request_priority,
+          
+          // UPDATE FIELDS - These are what we want to change
+          status: 'quoted',
+          amount: estimate.quote_amount, // Set amount column to same value as quote_amount
+          quote_amount: estimate.quote_amount,
+          quote_notes: estimate.quote_notes
+        }
+      );
+      
+      console.log('Estimate sent to customer successfully');
+      await refreshEstimates();
+      alert('Estimate sent to customer for review!');
+    } catch (error) {
+      console.error('Failed to send estimate to customer:', error);
+      alert('Failed to send estimate to customer. Please try again.');
     }
   };
 
@@ -298,7 +377,7 @@ const EstimatesDashboard: React.FC = () => {
         request_demolition_addon: Boolean(requestFormData.requestDemolition),
         how_did_you_hear: requestFormData.howDidYouHear || '',
         request_priority: requestFormData.priority,
-        status: 'pending' as const,
+        status: 'need review' as const,
         amount: null,
         quote_amount: null,
         quote_notes: ''
@@ -451,7 +530,7 @@ const EstimatesDashboard: React.FC = () => {
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="font-semibold text-gray-900">Request #{request.id}</h3>
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(request.status)}`}>
-                            {(request.status || 'pending').toUpperCase()}
+                            {(request.status || 'need review').toUpperCase()}
                           </span>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(request.request_priority)}`}>
                             {(request.request_priority || 'standard').toUpperCase()}
@@ -567,7 +646,7 @@ const EstimatesDashboard: React.FC = () => {
                         <div className="flex items-center space-x-3 mb-2">
                           <h3 className="font-semibold text-gray-900">Estimate #{estimate.id}</h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(estimate.status)}`}>
-                            {(estimate.status || 'pending').toUpperCase()}
+                            {(estimate.status || 'need review').toUpperCase()}
                           </span>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(estimate.request_priority)}`}>
                               {(estimate.request_priority || 'standard').toUpperCase()}
@@ -609,6 +688,13 @@ const EstimatesDashboard: React.FC = () => {
                         >
                           <Eye className="w-4 h-4" />
                           <span>Edit Details</span>
+                        </button>
+                        <button
+                          onClick={() => handleSendToCustomer(estimate)}
+                          className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>Send to Customer for Review</span>
                         </button>
                           <div className="relative group">
                             <button 
@@ -884,7 +970,7 @@ const EstimatesDashboard: React.FC = () => {
                   material_types: currentEstimate.material_types,
                   
                   // UPDATE FIELDS - These are what you want to change
-                  status: 'quoted',
+                  status: 'pending',
                   quote_amount: amount, // Keep as number, not string
                   amount: amount, // Also set the amount field
                   quote_notes: notes,
@@ -1059,7 +1145,7 @@ const RequestDetailsModal: React.FC<RequestDetailsModalProps> = ({ request, onCl
             >
               Close
             </button>
-            {request.status === 'pending' && (
+            {request.status === 'need review' && (
               <button
                 onClick={onCreateEstimate}
                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
@@ -1582,6 +1668,20 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
         </div>
 
         <form onSubmit={onSubmit} className="p-6 space-y-8">
+          {/* Required Fields Notice */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-medium text-blue-900 mb-1">Required Fields</h4>
+                <p className="text-sm text-blue-700">
+                  Fields marked with <span className="text-red-500 font-semibold">*</span> are required for new customers. 
+                  For existing customers, only the customer selection is required.
+                </p>
+              </div>
+            </div>
+          </div>
+
           {/* Customer Selection */}
               <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -1620,7 +1720,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
 
               {!formData.isNewCustomer && (
               <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Existing Customer</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Existing Customer *</label>
                   <select
                     value={formData.selectedCustomerId}
                     onChange={(e) => handleCustomerSelection(false, e.target.value)}
@@ -1770,6 +1870,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Calendar className="w-5 h-5 mr-2" />
               Project Details
+              <span className="ml-2 text-sm text-gray-500 font-normal">(Location & Volume required *)</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -1811,8 +1912,9 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Volume</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Approximate Volume *</label>
                 <select
+                  required={true}
                   value={formData.approximateVolume}
                   onChange={(e) => setFormData({ ...formData, approximateVolume: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1841,6 +1943,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <Package className="w-5 h-5 mr-2" />
               Material Types
+              <span className="ml-2 text-sm text-gray-500 font-normal">(Optional - helps with pricing)</span>
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {materialTypeOptions.map(materialType => (
@@ -1862,6 +1965,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <FileText className="w-5 h-5 mr-2" />
               Additional Information
+              <span className="ml-2 text-sm text-gray-500 font-normal">(Optional)</span>
             </h3>
             <div className="space-y-4">
               <div>
@@ -2563,7 +2667,14 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
                       min="0"
                       step="0.01"
                       value={editedEstimate.quote_amount || ''}
-                      onChange={(e) => updateField('quote_amount', Number(e.target.value))}
+                      onChange={(e) => {
+                        const newAmount = Number(e.target.value);
+                        updateField('quote_amount', newAmount);
+                        // Update status to 'pending' when quote amount is set
+                        if (newAmount > 0) {
+                          updateField('status', 'pending');
+                        }
+                      }}
                       className="w-full px-3 py-2 text-lg font-bold border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent"
                       placeholder="Enter quote amount"
                     />
