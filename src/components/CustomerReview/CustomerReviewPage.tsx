@@ -37,11 +37,8 @@ const CustomerReviewPage: React.FC<CustomerReviewPageProps> = ({ estimateId }) =
       setSubmitting(true);
       setError(null);
       
-      // Update the estimate status
-      await estimatesService.updateEstimate(parseInt(estimateId), {
-        ...estimate!,
-        status: decision
-      });
+      // Update the estimate status using the unauthenticated endpoint
+      await estimatesService.updateEstimateStatusUnauthenticated(parseInt(estimateId), decision);
       
       setSuccess(`Thank you! Your estimate has been ${decision}.`);
     } catch (error) {

@@ -351,6 +351,23 @@ class EstimatesService {
   async updateEstimateStatus(id: number, status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review'): Promise<UpdateEstimateResponse> {
     return this.updateEstimate(id, { status });
   }
+
+  /**
+   * Update estimate status (unauthenticated endpoint for customer review)
+   */
+  async updateEstimateStatusUnauthenticated(id: number, status: 'accepted' | 'declined'): Promise<SingleEstimateResponse> {
+    try {
+      const response = await axios.patch(`${API_BASE_URL}/api/v1/estimates/${id}/status`, {
+        status
+      });
+
+      console.log('✅ Estimate status updated successfully (unauthenticated):', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Failed to update estimate status (unauthenticated):', error);
+      throw new Error(error.response?.data?.message || 'Failed to update estimate status');
+    }
+  }
 }
 
 export const estimatesService = new EstimatesService();
