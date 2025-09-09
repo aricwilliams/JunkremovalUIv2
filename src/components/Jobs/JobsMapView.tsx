@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadModules } from 'esri-loader';
 import { EstimateRequest } from '../../types';
+import { coordinateService } from '../../services/coordinateService';
 import JobDetailsModal from './JobDetailsModal';
 import {
   Filter,
@@ -33,23 +34,7 @@ declare global {
   }
 }
 
-// Mock coordinates function for estimates
-const getMockCoordinates = (address: string) => {
-  // Generate consistent mock coordinates based on address hash
-  const hash = address.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
-  }, 0);
-  
-  // Wilmington, NC area coordinates with some variation
-  const baseLat = 34.2257;
-  const baseLng = -77.9447;
-  
-  return {
-    latitude: baseLat + (hash % 100) / 1000,
-    longitude: baseLng + (hash % 100) / 1000
-  };
-};
+// Mock coordinates function removed - now using real geocoding via coordinateService
 
 const JobsMapView: React.FC<JobsMapViewProps> = ({ 
   jobs, 
@@ -68,6 +53,121 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [jobsWithCoordinates, setJobsWithCoordinates] = useState<JobWithCoordinates[]>([]);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Format address for better geocoding
+  const formatAddressForGeocoding = (address: string): string => {
+    if (!address) return '';
+    
+    // Clean up the address
+    let formatted = address
+      .trim()
+      .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
+      .replace(/,\s*,/g, ',') // Remove double commas
+      .replace(/^,|,$/g, '') // Remove leading/trailing commas
+      .trim();
+    
+    // Handle common address formatting issues
+    formatted = formatted
+      .replace(/\bSuite\s+\d+[A-Z]?\b/gi, '') // Remove suite numbers
+      .replace(/\bApt\s+\d+[A-Z]?\b/gi, '') // Remove apartment numbers
+      .replace(/\bUnit\s+\d+[A-Z]?\b/gi, '') // Remove unit numbers
+      .replace(/\b#\d+[A-Z]?\b/gi, '') // Remove # numbers
+      .replace(/\s+/g, ' ') // Normalize spaces again
+      .trim();
+    
+    // Ensure proper comma separation
+    const parts = formatted.split(',').map(part => part.trim()).filter(part => part);
+    formatted = parts.join(', ');
+    
+    console.log(`Formatted address: "${address}" → "${formatted}"`);
+    return formatted;
+  };
+
+  // Geocode addresses to get coordinates
+  const geocodeJobs = async (jobsToGeocode: EstimateRequest[]) => {
+    setIsGeocoding(true);
+    console.log('Starting geocoding for jobs:', jobsToGeocode.length, 'jobs');
+    try {
+      const jobsWithCoords: JobWithCoordinates[] = [];
+      
+      for (const job of jobsToGeocode) {
+        console.log(`Processing job ${job.id}:`, {
+          id: job.id,
+          service_address: job.service_address,
+          hasLatitude: !!job.latitude,
+          hasLongitude: !!job.longitude
+        });
+        // Always geocode since estimates don't have coordinates in the database
+        console.log(`Geocoding address for job ${job.id}: ${job.service_address}`);
+        
+        // Format the address for better geocoding
+        const formattedAddress = formatAddressForGeocoding(job.service_address);
+        let coordinates = await coordinateService.getLatLng(formattedAddress);
+        
+        // If geocoding fails, try just the street address without city/state
+        if (!coordinates) {
+          console.log(`Trying street address only for job ${job.id}`);
+          const streetAddress = formattedAddress.split(',')[0].trim();
+          console.log(`Street address: ${streetAddress}`);
+          coordinates = await coordinateService.getLatLng(streetAddress);
+        }
+        
+        // If still failing, try just the city and state
+        if (!coordinates) {
+          console.log(`Trying city/state for job ${job.id}`);
+          const cityState = formattedAddress.split(',').slice(-2).join(',').trim();
+          console.log(`City/State: ${cityState}`);
+          coordinates = await coordinateService.getLatLng(cityState);
+        }
+        
+        if (coordinates) {
+          console.log(`Successfully geocoded job ${job.id}:`, coordinates);
+          jobsWithCoords.push({
+            ...job,
+            latitude: coordinates.lat,
+            longitude: coordinates.lng
+          });
+        } else {
+          console.warn(`Failed to geocode address for job ${job.id}: ${job.service_address}`);
+          // Add a fallback coordinate for Southport, NC if all else fails
+          console.log(`Using fallback coordinates for Southport, NC`);
+          jobsWithCoords.push({
+            ...job,
+            latitude: 33.9207, // Southport, NC coordinates
+            longitude: -78.0208
+          });
+        }
+      }
+      
+      setJobsWithCoordinates(jobsWithCoords);
+      
+      // Center map on first job's address
+      if (jobsWithCoords.length > 0 && mapInstanceRef.current) {
+        const firstJob = jobsWithCoords[0];
+        console.log('Centering map on first job:', {
+          address: firstJob.service_address,
+          coordinates: [firstJob.longitude, firstJob.latitude]
+        });
+        mapInstanceRef.current.goTo({
+          center: [firstJob.longitude, firstJob.latitude],
+          zoom: 14
+        });
+        saveMapState([firstJob.longitude, firstJob.latitude], 14);
+      } else {
+        console.log('Cannot center map:', {
+          hasJobs: jobsWithCoords.length > 0,
+          hasMap: !!mapInstanceRef.current,
+          jobsCount: jobsWithCoords.length
+        });
+      }
+    } catch (error) {
+      console.error('Error geocoding jobs:', error);
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
 
   // Get saved map state from localStorage or use first job's coordinates
   const getSavedMapState = () => {
@@ -89,12 +189,13 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
     };
   };
 
-  // Get default center from first job with coordinates, fallback to Wilmington, NC
+  // Get default center from first job's address, fallback to Wilmington, NC
   const getDefaultCenter = (): [number, number] => {
-    const jobsWithCoords = jobs.filter(job => job.latitude && job.longitude);
-    if (jobsWithCoords.length > 0) {
-      const firstJob = jobsWithCoords[0];
-      return [firstJob.longitude!, firstJob.latitude!];
+    if (jobs.length > 0) {
+      // Use the first job's address to get coordinates
+      const firstJob = jobs[0];
+      // For now, return fallback coordinates - the map will center properly after geocoding
+      return [-77.9447, 34.2257]; // Wilmington, NC coordinates as fallback
     }
     return [-77.9447, 34.2257]; // Wilmington, NC coordinates as fallback
   };
@@ -129,10 +230,37 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
     }
   };
 
-  // Filter jobs that have coordinates
-  const jobsWithCoordinates = jobs.filter(job =>
-    job.latitude && job.longitude
-  ) as JobWithCoordinates[];
+  // Use the geocoded jobs with coordinates
+  // jobsWithCoordinates is now managed by state and populated by geocodeJobs function
+
+  // Geocode jobs when jobs prop changes
+  useEffect(() => {
+    if (jobs.length > 0) {
+      console.log('Jobs received for geocoding:', jobs.length, 'jobs');
+      console.log('First job address:', jobs[0]?.service_address);
+      geocodeJobs(jobs);
+    }
+  }, [jobs]);
+
+  // Update map markers when geocoded jobs are available
+  useEffect(() => {
+    if (jobsWithCoordinates.length > 0 && window.updateMarkers) {
+      window.updateMarkers();
+      
+      // Also try to center the map here as a fallback
+      if (mapInstanceRef.current) {
+        const firstJob = jobsWithCoordinates[0];
+        console.log('Fallback: Centering map on first job:', {
+          address: firstJob.service_address,
+          coordinates: [firstJob.longitude, firstJob.latitude]
+        });
+        mapInstanceRef.current.goTo({
+          center: [firstJob.longitude, firstJob.latitude],
+          zoom: 14
+        });
+      }
+    }
+  }, [jobsWithCoordinates]);
 
   // Get unique employees from jobs
   const uniqueEmployees = jobs.reduce((acc, job) => {
@@ -262,12 +390,10 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
           graphicsLayerRef.current.removeAll();
 
           filteredJobs.forEach((job) => {
-            // For estimates, we'll use mock coordinates based on the address
-            // In a real app, you'd geocode the service_address
-            const mockCoords = getMockCoordinates(job.service_address);
+            // Use the geocoded coordinates from the coordinate service
             const point = new Point({
-              longitude: mockCoords.longitude,
-              latitude: mockCoords.latitude,
+              longitude: job.longitude,
+              latitude: job.latitude,
             });
 
             const color = getStatusColor();
@@ -403,6 +529,16 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
   return (
     <div className="relative">
+      {/* Geocoding Status */}
+      {isGeocoding && (
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-20">
+          <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            <span className="text-sm">Geocoding addresses...</span>
+          </div>
+        </div>
+      )}
+
       {/* Filters Panel */}
       <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-10">
         <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 max-w-xs sm:max-w-none">
