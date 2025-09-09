@@ -976,7 +976,7 @@ const EstimatesDashboard: React.FC = () => {
                   material_types: currentEstimate.material_types,
                   
                   // UPDATE FIELDS - These are what you want to change
-                  status: 'pending',
+                  status: 'quoted',
                   quote_amount: amount, // Keep as number, not string
                   amount: amount, // Also set the amount field
                   quote_notes: notes,
@@ -1048,22 +1048,38 @@ const EstimatesDashboard: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Customer Review URL
                 </label>
-                <div className="flex">
-                  <input
-                    type="text"
-                    value={customerReviewUrl}
-                    readOnly
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-sm font-mono"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(customerReviewUrl);
-                      alert('URL copied to clipboard!');
-                    }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 transition-colors text-sm"
-                  >
-                    Copy
-                  </button>
+                <div className="space-y-3">
+                  <div className="flex">
+                    <input
+                      type="text"
+                      value={customerReviewUrl}
+                      readOnly
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(customerReviewUrl);
+                        alert('URL copied to clipboard!');
+                      }}
+                      className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <span>Copy Link</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        window.open(customerReviewUrl, '_blank');
+                      }}
+                      className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span>Open in New Tab</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
