@@ -38,7 +38,7 @@ export interface EstimateRequest {
   request_demolition_addon?: boolean;
   how_did_you_hear?: string | null;
   request_priority?: 'standard' | 'urgent' | 'low' | null;
-  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | null;
+  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | 'scheduled' | 'in progress' | 'completed' | 'cancelled' | null;
   quote_amount?: number | null;
   amount?: number | null;
   quote_notes?: string | null;
@@ -102,7 +102,7 @@ export interface CreateEstimateRequest {
   request_demolition_addon?: boolean;
   how_did_you_hear?: string | null;
   request_priority?: 'standard' | 'urgent' | 'low' | null;
-  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | null;
+  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | 'scheduled' | 'in progress' | 'completed' | 'cancelled' | null;
   quote_amount?: number | null;
   amount?: number | null;
   quote_notes?: string | null;
@@ -142,7 +142,7 @@ export interface UpdateEstimateRequest {
   request_demolition_addon?: boolean;
   how_did_you_hear?: string | null;
   request_priority?: 'standard' | 'urgent' | 'low' | null;
-  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | null;
+  status?: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | 'scheduled' | 'in progress' | 'completed' | 'cancelled' | null;
   quote_amount?: number | null;
   amount?: number | null;
   quote_notes?: string | null;
@@ -348,7 +348,7 @@ class EstimatesService {
   /**
    * Update estimate status only (convenience method)
    */
-  async updateEstimateStatus(id: number, status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review'): Promise<UpdateEstimateResponse> {
+  async updateEstimateStatus(id: number, status: 'pending' | 'reviewed' | 'quoted' | 'accepted' | 'declined' | 'expired' | 'need review' | 'scheduled' | 'in progress' | 'completed' | 'cancelled'): Promise<UpdateEstimateResponse> {
     return this.updateEstimate(id, { status });
   }
 

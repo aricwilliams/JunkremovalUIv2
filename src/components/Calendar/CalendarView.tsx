@@ -210,7 +210,7 @@ const CalendarView: React.FC = () => {
                               key={job.id}
                               className={`text-xs px-1 sm:px-2 py-1 rounded text-white truncate cursor-pointer ${getStatusColor(job.status)}`}
                               onClick={() => handleJobClick(job)}
-                              title={`${jobTime} - ${job.full_name || 'Unknown Customer'} - ${job.service_address}`}
+                              title={`${jobTime} - ${job.full_name || 'Unknown Customer'} - ${job.service_address || 'No address'}`}
                             >
                               <div className="truncate">{job.full_name || 'Unknown Customer'}</div>
                               <div className="text-xs opacity-75">{jobTime}</div>

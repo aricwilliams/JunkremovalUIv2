@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
 import { Job, EstimateRequest } from '../../types';
+import { estimatesService } from '../../services/estimatesService';
 import JobsListView from './JobsListView';
 import JobsMapView from './JobsMapView';
 import JobProgressTracker from './JobProgressTracker';
@@ -26,8 +27,82 @@ const JobsView: React.FC = () => {
   );
 
   const handleStatusUpdate = async (estimateId: string, newStatus: string) => {
-    // Handle estimate status update if needed
-    console.log('Status update for estimate:', estimateId, newStatus);
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Find the estimate to get all current data
+      const currentEstimate = estimates.find(est => est.id.toString() === estimateId);
+      if (!currentEstimate) {
+        throw new Error('Estimate not found');
+      }
+      
+      // Comprehensive data preparation (same as other tabs)
+      const updateData = {
+        // Basic info
+        is_new_client: Boolean(currentEstimate.is_new_client),
+        existing_client_id: currentEstimate.existing_client_id || null,
+        full_name: currentEstimate.full_name || '',
+        phone_number: currentEstimate.phone_number ? currentEstimate.phone_number.replace(/[^0-9]/g, '') : '',
+        email_address: currentEstimate.email_address || '',
+        ok_to_text: Boolean(currentEstimate.ok_to_text),
+        
+        // Service details
+        service_address: currentEstimate.service_address || '',
+        gate_code: currentEstimate.gate_code || null,
+        apartment_unit: currentEstimate.apartment_unit || null,
+        preferred_date: currentEstimate.preferred_date ? new Date(currentEstimate.preferred_date).toISOString().split('T')[0] : null,
+        preferred_time: currentEstimate.preferred_time || null,
+        location_on_property: currentEstimate.location_on_property || '',
+        approximate_volume: currentEstimate.approximate_volume || '',
+        access_considerations: currentEstimate.access_considerations || null,
+        
+        // Material and safety info
+        material_types: currentEstimate.material_types || [],
+        approximate_item_count: currentEstimate.approximate_item_count || null,
+        items_filled_water: Boolean(currentEstimate.items_filled_water),
+        items_filled_oil_fuel: Boolean(currentEstimate.items_filled_oil_fuel),
+        hazardous_materials: Boolean(currentEstimate.hazardous_materials),
+        items_tied_bags: Boolean(currentEstimate.items_tied_bags),
+        oversized_items: Boolean(currentEstimate.oversized_items),
+        mold_present: Boolean(currentEstimate.mold_present),
+        pests_present: Boolean(currentEstimate.pests_present),
+        sharp_objects: Boolean(currentEstimate.sharp_objects),
+        heavy_lifting_required: Boolean(currentEstimate.heavy_lifting_required),
+        disassembly_required: Boolean(currentEstimate.disassembly_required),
+        
+        // Additional info
+        additional_notes: currentEstimate.additional_notes || null,
+        request_donation_pickup: Boolean(currentEstimate.request_donation_pickup),
+        request_demolition_addon: Boolean(currentEstimate.request_demolition_addon),
+        how_did_you_hear: currentEstimate.how_did_you_hear || null,
+        request_priority: currentEstimate.request_priority || null,
+        
+        // Status and pricing
+        status: newStatus as any,
+        quote_amount: currentEstimate.quote_amount || null,
+        amount: currentEstimate.amount || null,
+        quote_notes: currentEstimate.quote_notes || null
+      };
+      
+      // Update the estimate using the main updateEstimate method with comprehensive data
+      await estimatesService.updateEstimate(parseInt(estimateId), updateData);
+      
+      // Refresh the estimates data
+      await refreshEstimates();
+      
+      // Update the selected estimate if it's the one being updated
+      if (selectedEstimate && selectedEstimate.id.toString() === estimateId) {
+        setSelectedEstimate(prev => prev ? { ...prev, status: newStatus as any } : null);
+      }
+      
+      console.log('Status updated successfully:', estimateId, newStatus);
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      setError('Failed to update job status. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEstimateSelect = (estimate: EstimateRequest) => {

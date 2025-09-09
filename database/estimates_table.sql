@@ -56,7 +56,7 @@ CREATE TABLE estimates (
     request_priority ENUM('standard', 'urgent', 'low') DEFAULT 'standard',
     
     -- System Fields
-    status ENUM('pending', 'need review', 'reviewed', 'quoted', 'accepted', 'declined', 'expired') DEFAULT 'need review',
+    status ENUM('pending', 'need review', 'reviewed', 'quoted', 'accepted', 'declined', 'expired', 'scheduled', 'in progress', 'completed', 'cancelled') DEFAULT 'need review',
     quote_amount DECIMAL(10,2) NULL,
     quote_notes TEXT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -92,8 +92,8 @@ CREATE TABLE estimate_media (
 CREATE TABLE estimate_status_history (
     id INT PRIMARY KEY AUTO_INCREMENT,
     estimate_id INT NOT NULL,
-    old_status ENUM('pending', 'need review', 'reviewed', 'quoted', 'accepted', 'declined', 'expired') NULL,
-    new_status ENUM('pending', 'need review', 'reviewed', 'quoted', 'accepted', 'declined', 'expired') NOT NULL,
+    old_status ENUM('pending', 'need review', 'reviewed', 'quoted', 'accepted', 'declined', 'expired', 'scheduled', 'in progress', 'completed', 'cancelled') NULL,
+    new_status ENUM('pending', 'need review', 'reviewed', 'quoted', 'accepted', 'declined', 'expired', 'scheduled', 'in progress', 'completed', 'cancelled') NOT NULL,
     changed_by INT NULL, -- References employees table
     notes TEXT NULL,
     changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

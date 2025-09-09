@@ -12,7 +12,8 @@ import {
   AlertCircle,
   Truck,
   Star,
-  DollarSign
+  DollarSign,
+  Calendar
 } from 'lucide-react';
 
 interface JobProgressTrackerProps {
@@ -28,13 +29,17 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
     { key: 'need review', label: 'Need Review', icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
     { key: 'reviewed', label: 'Reviewed', icon: CheckCircle, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
     { key: 'quoted', label: 'Quoted', icon: DollarSign, color: 'text-purple-600', bgColor: 'bg-purple-50', borderColor: 'border-purple-200' },
-    { key: 'accepted', label: 'Accepted', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
+    { key: 'accepted', label: 'Accepted', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+    { key: 'scheduled', label: 'Scheduled', icon: Clock, color: 'text-blue-600', bgColor: 'bg-blue-50', borderColor: 'border-blue-200' },
+    { key: 'in progress', label: 'In Progress', icon: Play, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+    { key: 'completed', label: 'Completed', icon: CheckCircle, color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' },
+    { key: 'cancelled', label: 'Cancelled', icon: AlertCircle, color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' }
   ];
 
   const currentStepIndex = statusSteps.findIndex(step => step.key === job.status);
 
   const handleStatusUpdate = (newStatus: string) => {
-    onStatusUpdate(job.id, newStatus);
+    onStatusUpdate(job.id.toString(), newStatus);
   };
 
   const sendNotification = async (type: 'on-way' | 'started' | 'completed') => {
@@ -44,9 +49,9 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const messages = {
-      'on-way': `Hi ${job.customerName}! Your junk removal team is on the way to ${job.address}. We'll be there in about 15 minutes.`,
-      'started': `Hi ${job.customerName}! We've started your junk removal job at ${job.address}. We'll keep you updated on our progress.`,
-      'completed': `Hi ${job.customerName}! Your junk removal job at ${job.address} is complete! We'll send you an invoice shortly. Thank you for choosing us!`
+      'on-way': `Hi ${job.full_name}! Your junk removal team is on the way to ${job.service_address}. We'll be there in about 15 minutes.`,
+      'started': `Hi ${job.full_name}! We've started your junk removal job at ${job.service_address}. We'll keep you updated on our progress.`,
+      'completed': `Hi ${job.full_name}! Your junk removal job at ${job.service_address} is complete! We'll send you an invoice shortly. Thank you for choosing us!`
     };
 
     console.log('Sending notification:', messages[type]);
@@ -58,17 +63,22 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
   };
 
   const handleCall = () => {
-    window.open(`tel:${job.phone_number}`, '_self');
+    if (job.phone_number) {
+      window.open(`tel:${job.phone_number}`, '_self');
+    }
   };
 
   const handleEmail = () => {
-    window.open(`mailto:${job.email_address}`, '_self');
+    if (job.email_address) {
+      window.open(`mailto:${job.email_address}`, '_self');
+    }
   };
 
   const handleGoogleMaps = () => {
-    const address = job.service_address;
-    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-    window.open(googleMapsUrl, '_blank');
+    if (job.service_address) {
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.service_address)}`;
+      window.open(googleMapsUrl, '_blank');
+    }
   };
 
   return (
@@ -80,7 +90,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
           <p className="text-sm text-gray-600 break-words">{job.service_address}</p>
         </div>
         <div className="text-left sm:text-right">
-          <p className="text-xl sm:text-2xl font-bold text-gray-900">${job.quote_amount ? parseFloat(job.quote_amount).toLocaleString() : 'Not quoted'}</p>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">${job.quote_amount ? parseFloat(job.quote_amount.toString()).toLocaleString() : 'Not quoted'}</p>
           <p className="text-sm text-gray-600">{job.approximate_volume}</p>
         </div>
       </div>
@@ -140,9 +150,19 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
       <div className="mb-6">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Job Status Actions */}
+          {job.status === 'accepted' && (
+            <button
+              onClick={() => handleStatusUpdate('scheduled')}
+              className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
+            >
+              <Calendar className="w-4 h-4" />
+              <span>Schedule Job</span>
+            </button>
+          )}
+
           {job.status === 'scheduled' && (
             <button
-              onClick={() => handleStatusUpdate('in-progress')}
+              onClick={() => handleStatusUpdate('in progress')}
               className="flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm"
             >
               <Play className="w-4 h-4" />
@@ -150,7 +170,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
             </button>
           )}
 
-          {job.status === 'in-progress' && (
+          {job.status === 'in progress' && (
             <button
               onClick={() => handleStatusUpdate('completed')}
               className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm"
@@ -179,7 +199,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
             </button>
           )}
 
-          {job.status === 'in-progress' && (
+          {job.status === 'in progress' && (
             <button
               onClick={() => sendNotification('started')}
               disabled={isSendingNotification}
@@ -213,7 +233,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
           {job.status === 'scheduled' && (
             <div className="hidden sm:block" />
           )}
-          {job.status === 'in-progress' && (
+          {job.status === 'in progress' && (
             <div className="hidden sm:block" />
           )}
         </div>
@@ -221,28 +241,29 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
 
       {/* Quick Actions */}
       <div className="border-t border-gray-200 pt-4 mb-6">
+        <h4 className="font-medium text-gray-900 mb-3 text-sm">Quick Actions</h4>
         <div className="grid grid-cols-3 gap-3">
           <button
             onClick={handleGoogleMaps}
-            className="flex flex-col items-center space-y-1 px-3 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            className="flex flex-col items-center space-y-2 px-4 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105"
           >
-            <MapPin className="w-5 h-5" />
+            <MapPin className="w-6 h-6" />
             <span>Directions</span>
           </button>
 
           <button
             onClick={handleCall}
-            className="flex flex-col items-center space-y-1 px-3 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm"
+            className="flex flex-col items-center space-y-2 px-4 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105"
           >
-            <Phone className="w-5 h-5" />
+            <Phone className="w-6 h-6" />
             <span>Call</span>
           </button>
 
           <button
             onClick={handleEmail}
-            className="flex flex-col items-center space-y-1 px-3 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+            className="flex flex-col items-center space-y-2 px-4 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105"
           >
-            <Mail className="w-5 h-5" />
+            <Mail className="w-6 h-6" />
             <span>Email</span>
           </button>
         </div>
@@ -263,27 +284,27 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
         <h4 className="font-medium text-gray-900 mb-3 text-sm">Job Details</h4>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-gray-600">Scheduled Date:</p>
-            <p className="font-medium">{new Date(job.scheduledDate).toLocaleDateString()}</p>
+            <p className="text-gray-600">Preferred Date:</p>
+            <p className="font-medium">{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'Not set'}</p>
           </div>
           <div>
-            <p className="text-gray-600">Time Slot:</p>
-            <p className="font-medium">{job.timeSlot}</p>
+            <p className="text-gray-600">Preferred Time:</p>
+            <p className="font-medium">{job.preferred_time || 'Not set'}</p>
           </div>
-          <div style={{display: 'none'}}>
-            <p className="text-gray-600">Items:</p>
-            <p className="font-medium">{job.items.length} items</p>
+          <div>
+            <p className="text-gray-600">Volume:</p>
+            <p className="font-medium">{job.approximate_volume || 'Not specified'}</p>
           </div>
           <div>
             <p className="text-gray-600">Status:</p>
-            <p className="font-medium capitalize">{job.status.replace('-', ' ')}</p>
+            <p className="font-medium capitalize">{job.status?.replace('-', ' ') || 'Unknown'}</p>
           </div>
         </div>
 
-        {job.notes && (
-          <div className="mt-3" style={{display: 'none'}}>
+        {job.additional_notes && (
+          <div className="mt-3">
             <p className="text-gray-600 text-sm">Notes:</p>
-            <p className="text-sm break-words">{job.notes}</p>
+            <p className="text-sm break-words">{job.additional_notes}</p>
           </div>
         )}
       </div>
