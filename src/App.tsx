@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -16,11 +16,30 @@ import TrucksView from './components/Fleet/TrucksView';
 import EmployeesView from './components/Employees/EmployeesView';
 import ClientPortal from './components/Portal/ClientPortal';
 import AuthPage from './components/Auth/AuthPage';
+import CustomerReviewPage from './components/CustomerReview/CustomerReviewPage';
 
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
   const { isAuthenticated, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [customerReviewId, setCustomerReviewId] = useState<string | null>(null);
+
+  // Handle URL-based routing for customer review page
+  useEffect(() => {
+    const path = window.location.pathname;
+    const customerReviewMatch = path.match(/^\/junkremoval\/customer-review\/(\d+)$/);
+    
+    if (customerReviewMatch) {
+      setCustomerReviewId(customerReviewMatch[1]);
+    } else {
+      setCustomerReviewId(null);
+    }
+  }, []);
+
+  // If we're on a customer review page, show it regardless of authentication
+  if (customerReviewId) {
+    return <CustomerReviewPage estimateId={customerReviewId} />;
+  }
 
   const renderCurrentView = () => {
     switch (currentView) {

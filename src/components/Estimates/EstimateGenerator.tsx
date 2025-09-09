@@ -39,6 +39,8 @@ const EstimatesDashboard: React.FC = () => {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteAmount, setQuoteAmount] = useState<number>(0);
   const [quoteNotes, setQuoteNotes] = useState<string>('');
+  const [showCustomerUrlModal, setShowCustomerUrlModal] = useState(false);
+  const [customerReviewUrl, setCustomerReviewUrl] = useState<string>('');
 
   // Filter estimates based on quote amount
   const requests = estimates.filter(estimate => {
@@ -266,7 +268,11 @@ const EstimatesDashboard: React.FC = () => {
       
       console.log('Estimate sent to customer successfully');
       await refreshEstimates();
-      alert('Estimate sent to customer for review!');
+      
+      // Generate customer review URL
+      const url = `${window.location.origin}/junkremoval/customer-review/${estimate.id}`;
+      setCustomerReviewUrl(url);
+      setShowCustomerUrlModal(true);
     } catch (error) {
       console.error('Failed to send estimate to customer:', error);
       alert('Failed to send estimate to customer. Please try again.');
@@ -1018,6 +1024,75 @@ const EstimatesDashboard: React.FC = () => {
             }
           }}
         />
+      )}
+
+      {/* Customer Review URL Modal */}
+      {showCustomerUrlModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full">
+            <div className="flex items-center justify-between p-6 border-b">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Customer Review URL Generated</h2>
+                <p className="text-sm text-gray-600 mt-1">Copy this URL to send to your customer</p>
+              </div>
+              <button 
+                onClick={() => setShowCustomerUrlModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Customer Review URL
+                </label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={customerReviewUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-sm font-mono"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(customerReviewUrl);
+                      alert('URL copied to clipboard!');
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 transition-colors text-sm"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-900 mb-1">What happens next?</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Customer visits the URL to review their estimate</li>
+                      <li>• Customer can accept or decline the estimate</li>
+                      <li>• Status will automatically update in your system</li>
+                      <li>• Accepted estimates will appear in your Jobs tab</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end p-6 border-t">
+              <button
+                onClick={() => setShowCustomerUrlModal(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

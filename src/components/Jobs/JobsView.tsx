@@ -16,11 +16,9 @@ const JobsView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter estimates to only show actual jobs (where amount is not null and not 0)
+  // Filter estimates to only show accepted jobs
   const jobs = estimates.filter(estimate => 
-    estimate.amount !== null && 
-    estimate.amount !== undefined && 
-    parseFloat(estimate.amount.toString()) > 0
+    estimate.status === 'accepted'
   );
 
   const handleStatusUpdate = async (estimateId: string, newStatus: string) => {
