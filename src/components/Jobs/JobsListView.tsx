@@ -40,6 +40,12 @@ const JobsListView: React.FC<JobsListViewProps> = ({
   const [showEstimateModal, setShowEstimateModal] = useState(false);
   const [selectedEstimate, setSelectedEstimate] = useState<EstimateRequest | null>(null);
 
+  const handleCall = (phoneNumber: string) => {
+    if (phoneNumber) {
+      window.open(`tel:${phoneNumber}`, '_self');
+    }
+  };
+
   const filteredJobs = useMemo(() => {
     return jobs.filter(job => {
       const matchesStatus = statusFilter === 'all' || job.status === statusFilter;
@@ -100,6 +106,14 @@ const JobsListView: React.FC<JobsListViewProps> = ({
         return 'bg-purple-100 text-purple-800';
       case 'accepted':
         return 'bg-green-100 text-green-800';
+      case 'scheduled':
+        return 'bg-blue-100 text-blue-800';
+      case 'in progress':
+        return 'bg-orange-100 text-orange-800';
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
       case 'declined':
         return 'bg-red-100 text-red-800';
       case 'expired':
@@ -121,6 +135,14 @@ const JobsListView: React.FC<JobsListViewProps> = ({
         return <DollarSign className="w-4 h-4" />;
       case 'accepted':
         return <CheckCircle className="w-4 h-4" />;
+      case 'scheduled':
+        return <Calendar className="w-4 h-4" />;
+      case 'in progress':
+        return <Play className="w-4 h-4" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4" />;
+      case 'cancelled':
+        return <X className="w-4 h-4" />;
       case 'declined':
         return <X className="w-4 h-4" />;
       case 'expired':
@@ -150,8 +172,9 @@ const JobsListView: React.FC<JobsListViewProps> = ({
           className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
         >
           <option value="all">All Status</option>
+          <option value="accepted">Accepted</option>
           <option value="scheduled">Scheduled</option>
-          <option value="in-progress">In Progress</option>
+          <option value="in progress">In Progress</option>
           <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </select>
@@ -239,7 +262,16 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                         <span className="font-medium">Materials:</span> {job.material_types?.join(', ') || 'N/A'}
                       </div>
                       <div>
-                        <span className="font-medium">Phone:</span> {job.phone_number || 'N/A'}
+                        <span className="font-medium">Phone:</span> {job.phone_number ? (
+                          <button
+                            onClick={() => handleCall(job.phone_number)}
+                            className="text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer ml-1"
+                          >
+                            {job.phone_number}
+                          </button>
+                        ) : (
+                          <span className="ml-1">N/A</span>
+                        )}
                       </div>
                       <div>
                         <span className="font-medium">Email:</span> {job.email_address || 'N/A'}
@@ -314,13 +346,13 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                         <Eye className="w-3 h-3" />
                         <span>View Details</span>
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => handleJobClick(job)}
                         className="w-full sm:w-auto px-3 py-1.5 sm:py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors flex items-center justify-center space-x-1"
                       >
                         <Eye className="w-3 h-3" />
                         <span>View</span>
-                      </button>
+                      </button> */}
                       {onJobSelect && (
                         <button
                           onClick={() => onJobSelect(job)}
@@ -429,7 +461,16 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                       <Phone className="w-5 h-5 text-green-600" />
                       <div>
                         <div className="text-sm font-medium text-gray-700">Phone Number</div>
-                        <div className="text-lg font-semibold text-gray-900">{selectedEstimate.phone_number || 'N/A'}</div>
+                        {selectedEstimate.phone_number ? (
+                          <button
+                            onClick={() => handleCall(selectedEstimate.phone_number)}
+                            className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+                          >
+                            {selectedEstimate.phone_number}
+                          </button>
+                        ) : (
+                          <div className="text-lg font-semibold text-gray-900">N/A</div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">

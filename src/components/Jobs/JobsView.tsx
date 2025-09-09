@@ -16,9 +16,13 @@ const JobsView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter estimates to only show accepted jobs
+  // Filter estimates to show jobs with various statuses
   const jobs = estimates.filter(estimate => 
-    estimate.status === 'accepted'
+    estimate.status === 'accepted' ||
+    estimate.status === 'scheduled' ||
+    estimate.status === 'in progress' ||
+    estimate.status === 'completed' ||
+    estimate.status === 'cancelled'
   );
 
   const handleStatusUpdate = async (estimateId: string, newStatus: string) => {

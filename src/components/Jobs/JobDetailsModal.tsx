@@ -32,6 +32,12 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const handleCall = () => {
+    if (job.phone_number) {
+      window.open(`tel:${job.phone_number}`, '_self');
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -111,7 +117,16 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                   <Phone className="w-5 h-5 text-green-600" />
                   <div>
                     <div className="text-sm font-medium text-gray-700">Phone Number</div>
-                    <div className="text-lg font-semibold text-gray-900">{job.phone_number || 'N/A'}</div>
+                    {job.phone_number ? (
+                      <button
+                        onClick={handleCall}
+                        className="text-lg font-semibold text-blue-600 hover:text-blue-800 hover:underline transition-colors cursor-pointer"
+                      >
+                        {job.phone_number}
+                      </button>
+                    ) : (
+                      <div className="text-lg font-semibold text-gray-900">N/A</div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">

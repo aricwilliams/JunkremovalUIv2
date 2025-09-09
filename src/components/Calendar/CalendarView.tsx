@@ -86,13 +86,13 @@ const CalendarView: React.FC = () => {
             }).length} jobs scheduled
           </p>
         </div>
-        <button
+        {/* <button
           onClick={handleAddJob}
           className="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center sm:justify-start space-x-2 text-sm sm:text-base"
         >
           <Plus className="w-4 h-4" />
           <span>Add Job</span>
-        </button>
+        </button> */}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-6">
