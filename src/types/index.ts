@@ -632,7 +632,7 @@ export interface Analytics {
 export interface PhoneNumber {
   id: string | number;
   phone_number: string;
-  user_id?: string | number;
+  business_id?: string | number;
   twilio_sid?: string;
   friendly_name?: string;
   websiteId?: string;
@@ -661,7 +661,7 @@ export interface TwilioCall {
   id: string | number;
   call_sid?: string;
   callSid?: string;
-  user_id?: string | number;
+  business_id?: string | number;
   userId?: string;
   phone_number_id?: string | number;
   phoneNumberId?: string;
@@ -714,7 +714,7 @@ export interface TwilioRecording {
 
 export interface CallForwarding {
   id: string;
-  user_id: string;
+  business_id: string;
   phone_number_id: string;
   forward_to_number: string;
   is_active: boolean;

@@ -40,25 +40,25 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">
               {job.full_name} - #{job.id} - {job.status?.toUpperCase()}
-            </h2>
+          </h2>
             <p className="text-sm text-gray-600 mt-1">
               {job.service_address} • {job.approximate_volume} • 
               {job.quote_amount ? ` $${parseFloat(job.quote_amount).toLocaleString()}` : ' Not quoted'}
             </p>
           </div>
-          <button
-            onClick={onClose}
+            <button
+              onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
-          >
+            >
             <X className="w-6 h-6" />
-          </button>
+            </button>
         </div>
-        
+
         <div className="p-6 space-y-8">
           {/* Estimate Summary */}
           <div className="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 border border-blue-200">
@@ -70,7 +70,7 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600">#{job.id}</div>
                 <div className="text-sm text-gray-600">Estimate ID</div>
-              </div>
+        </div>
               <div className="text-center">
                 <div className={`text-lg font-semibold px-3 py-1 rounded-full inline-block ${
                   job.status === 'quoted' ? 'bg-green-100 text-green-800' :
@@ -78,25 +78,25 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                   'bg-gray-100 text-gray-800'
                 }`}>
                   {job.status?.toUpperCase() || 'PENDING'}
-                </div>
+            </div>
                 <div className="text-sm text-gray-600 mt-1">Status</div>
-              </div>
+            </div>
               <div className="text-center">
                 <div className={`text-lg font-semibold px-3 py-1 rounded-full inline-block ${
                   job.request_priority === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
                 }`}>
                   {job.request_priority?.toUpperCase() || 'STANDARD'}
-                </div>
-                <div className="text-sm text-gray-600 mt-1">Priority</div>
               </div>
+                <div className="text-sm text-gray-600 mt-1">Priority</div>
+            </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-green-600">
                   {job.quote_amount ? `$${parseFloat(job.quote_amount).toLocaleString()}` : 'Not Quoted'}
-                </div>
+                      </div>
                 <div className="text-sm text-gray-600">Quote Amount</div>
-              </div>
-            </div>
-          </div>
+                      </div>
+                    </div>
+                  </div>
 
           {/* Customer Information */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -105,17 +105,17 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
               Customer Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+          <div className="space-y-4">
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <User className="w-5 h-5 text-blue-600" />
-                  <div>
+            <div>
                     <div className="text-sm font-medium text-gray-700">Full Name</div>
                     <div className="text-lg font-semibold text-gray-900">{job.full_name || 'N/A'}</div>
-                  </div>
-                </div>
+            </div>
+            </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <Phone className="w-5 h-5 text-green-600" />
-                  <div>
+              <div>
                     <div className="text-sm font-medium text-gray-700">Phone Number</div>
                     {job.phone_number ? (
                       <button
@@ -126,34 +126,34 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                       </button>
                     ) : (
                       <div className="text-lg font-semibold text-gray-900">N/A</div>
-                    )}
-                  </div>
-                </div>
+                )}
+              </div>
+            </div>
                 <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                   <Mail className="w-5 h-5 text-purple-600" />
-                  <div>
+            <div>
                     <div className="text-sm font-medium text-gray-700">Email Address</div>
                     <div className="text-lg font-semibold text-gray-900">{job.email_address || 'N/A'}</div>
-                  </div>
+          </div>
+                    </div>
                 </div>
-              </div>
-              <div className="space-y-4">
+                <div className="space-y-4">
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="text-sm font-medium text-gray-700 mb-1">Client Type</div>
                   <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                     job.is_new_client ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
                   }`}>
                     {job.is_new_client ? 'New Client' : 'Existing Client'}
-                  </div>
-                </div>
+                              </div>
+                            </div>
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="text-sm font-medium text-gray-700 mb-1">Text Permission</div>
                   <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
                     job.ok_to_text ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
                     {job.ok_to_text ? 'Yes - OK to Text' : 'No - Do Not Text'}
-                  </div>
-                </div>
+                            </div>
+                          </div>
                 {job.existing_customer_name && (
                   <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                     <div className="text-sm font-medium text-green-700 mb-1">Existing Customer Details</div>
@@ -161,13 +161,13 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                       <div><strong>Name:</strong> {job.existing_customer_name}</div>
                       <div><strong>Email:</strong> {job.existing_customer_email}</div>
                       <div><strong>Phone:</strong> {job.existing_customer_phone}</div>
+                        </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
             </div>
-          </div>
-
+                  </div>
+                  
           {/* Service Details */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -177,59 +177,59 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center space-x-2 mb-2">
+                              <div className="flex items-center space-x-2 mb-2">
                     <MapPin className="w-5 h-5 text-blue-600" />
                     <span className="text-sm font-medium text-blue-700">Service Address</span>
-                  </div>
+                              </div>
                   <p className="text-lg font-semibold text-gray-900">{job.service_address || 'N/A'}</p>
-                </div>
+                              </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm font-medium text-gray-700 mb-1">Location on Property</div>
                   <div className="text-lg font-semibold text-gray-900">{job.location_on_property || 'N/A'}</div>
-                </div>
+                            </div>
                 
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm font-medium text-gray-700 mb-1">Gate Code</div>
                   <div className="text-lg font-semibold text-gray-900">{job.gate_code || 'N/A'}</div>
-                </div>
+                            </div>
                 
                 {job.apartment_unit && (
                   <div className="p-4 bg-gray-50 rounded-lg">
                     <div className="text-sm font-medium text-gray-700 mb-1">Apartment Unit</div>
                     <div className="text-lg font-semibold text-gray-900">{job.apartment_unit}</div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-4">
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
                 <div className="p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center space-x-2 mb-2">
                     <Calendar className="w-5 h-5 text-green-600" />
                     <span className="text-sm font-medium text-green-700">Preferred Date</span>
-                  </div>
+                    </div>
                   <div className="text-lg font-semibold text-gray-900">
                     {job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'N/A'}
-                  </div>
-                </div>
+                          </div>
+                        </div>
                 
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <div className="flex items-center space-x-2 mb-2">
                     <Clock className="w-5 h-5 text-purple-600" />
                     <span className="text-sm font-medium text-purple-700">Preferred Time</span>
-                  </div>
+                    </div>
                   <div className="text-lg font-semibold text-gray-900">{job.preferred_time || 'N/A'}</div>
-                </div>
-                
+                      </div>
+
                 {job.access_considerations && (
                   <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                     <div className="text-sm font-medium text-yellow-700 mb-1">Access Considerations</div>
                     <div className="text-sm text-gray-900">{job.access_considerations}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+                        </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
 
           {/* Items and Materials */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -246,19 +246,19 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <div className="text-sm font-medium text-gray-700 mb-1">Approximate Item Count</div>
                   <div className="text-lg font-semibold text-gray-900">{job.approximate_item_count || 'N/A'}</div>
-                </div>
+                      </div>
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <div className="text-sm font-medium text-blue-700 mb-2">Material Types</div>
-                  <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-2">
                     {job.material_types?.map((material, index) => (
                       <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                        {material}
-                      </span>
+                              {material}
+                            </span>
                     )) || <span className="text-gray-500">N/A</span>}
                   </div>
-                </div>
-              </div>
-              
+                        </div>
+                      </div>
+
               <div className="space-y-4">
                 <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
                   <div className="text-sm font-medium text-purple-700 mb-1">How did you hear about us</div>
@@ -272,9 +272,9 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                   <div className="text-sm font-medium text-gray-700 mb-1">Last Updated</div>
                   <div className="text-lg font-semibold text-gray-900">{new Date(job.updated_at).toLocaleDateString()}</div>
                 </div>
-              </div>
-            </div>
-          </div>
+                        </div>
+                        </div>
+                      </div>
 
           {/* Special Considerations */}
           <div className="bg-white border border-gray-200 rounded-lg p-6">
@@ -317,7 +317,7 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                         }`}>
                           {isActive ? 'Yes' : 'No'}
                         </div>
-                      </div>
+                        </div>
                       {isActive ? (
                         <CheckCircle className="w-5 h-5 text-green-500" />
                       ) : (
@@ -327,10 +327,10 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                   </div>
                 );
               })}
-            </div>
-          </div>
+                        </div>
+                      </div>
 
-          {/* Additional Notes */}
+                      {/* Additional Notes */}
           {job.additional_notes && (
             <div className="bg-white border border-gray-200 rounded-lg p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
@@ -341,9 +341,9 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                 <p className="text-gray-800 leading-relaxed">
                   {job.additional_notes}
                 </p>
-              </div>
-            </div>
-          )}
+                        </div>
+                        </div>
+                      )}
 
           {/* Quote Information */}
           {(job.quote_amount || job.quote_notes) && (
@@ -359,22 +359,22 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({
                       <div className="text-sm font-medium text-green-700 mb-2">Quote Amount</div>
                       <div className="text-4xl font-bold text-green-900">
                         ${parseFloat(job.quote_amount).toLocaleString()}
-                      </div>
-                    </div>
-                  )}
+                                </div>
+                              </div>
+                            )}
                   {job.quote_notes && (
-                    <div>
+                              <div>
                       <div className="text-sm font-medium text-green-700 mb-2">Quote Notes</div>
                       <div className="bg-white border border-green-200 rounded-lg p-3">
                         <p className="text-gray-800">{job.quote_notes}</p>
-                      </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                     </div>
                   )}
                 </div>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
