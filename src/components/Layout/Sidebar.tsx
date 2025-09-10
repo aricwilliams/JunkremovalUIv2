@@ -14,7 +14,8 @@ import {
   Briefcase,
   Truck,
   UserCheck,
-  Building
+  Building,
+  Phone
 } from 'lucide-react';
 import { useApp } from '../../contexts/AppContext';
 
@@ -75,6 +76,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       id: 'estimates',
       label: 'Estimates',
       icon: Calculator,
+      badge: null
+    },
+    {
+      id: 'calling',
+      label: 'Calling Service',
+      icon: Phone,
       badge: null
     },
     // {

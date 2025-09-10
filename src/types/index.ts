@@ -627,3 +627,124 @@ export interface Analytics {
     pendingRequests: number;
   };
 }
+
+// Twilio Calling Service Types
+export interface PhoneNumber {
+  id: string | number;
+  phone_number: string;
+  user_id?: string | number;
+  twilio_sid?: string;
+  friendly_name?: string;
+  websiteId?: string;
+  provider?: string;
+  monthlyFee?: number;
+  monthly_cost?: string;
+  callCount?: number;
+  status?: "active" | "inactive";
+  is_active?: number;
+  country: string;
+  region?: string;
+  locality?: string;
+  purchase_price?: string;
+  purchase_price_unit?: string;
+  capabilities: {
+    voice?: boolean;
+    sms?: boolean;
+  };
+  created_at?: string;
+  updated_at?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface TwilioCall {
+  id: string | number;
+  call_sid?: string;
+  callSid?: string;
+  user_id?: string | number;
+  userId?: string;
+  phone_number_id?: string | number;
+  phoneNumberId?: string;
+  to_number?: string;
+  from_number?: string;
+  to?: string;
+  from?: string;
+  direction: 'inbound' | 'outbound' | 'outbound-api';
+  status: 'queued' | 'ringing' | 'in-progress' | 'completed' | 'busy' | 'failed' | 'no-answer' | 'canceled';
+  duration: number;
+  price?: string | number;
+  price_unit?: string;
+  priceUnit?: string;
+  recording_url?: string;
+  recordingUrl?: string;
+  recording_sid?: string;
+  recordingSid?: string;
+  recording_duration?: number;
+  recording_status?: 'completed' | 'processing' | 'failed';
+  transcription?: string;
+  start_time?: string;
+  startTime?: Date;
+  end_time?: string;
+  endTime?: Date;
+  created_at?: string;
+  createdAt?: Date;
+  updated_at?: string;
+  updatedAt?: Date;
+}
+
+export interface TwilioRecording {
+  id: string;
+  recordingSid: string;
+  userId: string;
+  callSid: string;
+  phoneNumberId: string;
+  duration: number;
+  channels: number;
+  status: 'in-progress' | 'paused' | 'stopped' | 'processing' | 'completed' | 'absent';
+  mediaUrl: string;
+  price?: number;
+  priceUnit?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  fromNumber?: string;
+  toNumber?: string;
+  callDuration?: number;
+  callStatus?: string;
+}
+
+export interface CallForwarding {
+  id: string;
+  user_id: string;
+  phone_number_id: string;
+  forward_to_number: string;
+  is_active: boolean;
+  forwarding_type: 'always' | 'busy' | 'no_answer' | 'unavailable';
+  ring_timeout: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CallForwardingFormData {
+  phone_number_id: string;
+  forward_to_number: string;
+  forwarding_type: 'always' | 'busy' | 'no_answer' | 'unavailable';
+  ring_timeout: number;
+}
+
+export interface UserPhoneNumbersContextType {
+  phoneNumbers: PhoneNumber[];
+  calls: TwilioCall[];
+  recordings: TwilioRecording[];
+  phoneNumberStats: any;
+  loading: boolean;
+  error: string | null;
+  getMyNumbers: () => Promise<void>;
+  searchAvailableNumbers: (params: { areaCode?: string; country?: string; limit?: number }) => Promise<any>;
+  buyPhoneNumber: (data: { phoneNumber: string; country?: string; areaCode?: string; websiteId?: string }) => Promise<any>;
+  updatePhoneNumber: (id: string, updates: Partial<PhoneNumber>) => Promise<PhoneNumber>;
+  releasePhoneNumber: (id: string) => Promise<void>;
+  getCallHistory: (params?: { phoneNumberId?: string; limit?: number; page?: number; status?: string }) => Promise<void>;
+  getCallDetails: (callSid: string) => Promise<TwilioCall>;
+  getRecordings: (params?: { callSid?: string; phoneNumberId?: string; limit?: number; page?: number }) => Promise<void>;
+  deleteRecording: (recordingSid: string) => Promise<void>;
+}

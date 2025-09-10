@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
+import { UserPhoneNumbersProvider } from './contexts/UserPhoneNumbersContext';
 import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
 import DashboardView from './components/Dashboard/DashboardView';
@@ -17,6 +18,7 @@ import EmployeesView from './components/Employees/EmployeesView';
 import ClientPortal from './components/Portal/ClientPortal';
 import AuthPage from './components/Auth/AuthPage';
 import CustomerReviewPage from './components/CustomerReview/CustomerReviewPage';
+import TwilioCallingService from './components/Calling/TwilioCallingService';
 
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
@@ -55,6 +57,8 @@ const AppContent: React.FC = () => {
         return <LeadsView />;
       case 'estimates':
         return <EstimatesDashboard />;
+      case 'calling':
+        return <TwilioCallingService />;
       case 'trucks':
         return <TrucksView />;
       case 'employees':
@@ -114,7 +118,9 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <AppProvider>
-          <AppContent />
+          <UserPhoneNumbersProvider>
+            <AppContent />
+          </UserPhoneNumbersProvider>
         </AppProvider>
       </AuthProvider>
     </ToastProvider>
