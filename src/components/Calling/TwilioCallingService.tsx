@@ -1,29 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useUserPhoneNumbers } from '../../contexts/UserPhoneNumbersContext';
 import BrowserCallComponent from './BrowserCallComponent';
+import SMSComponent from '../SMS/SMSComponent';
 import { 
   Phone, 
   PhoneCall, 
   History, 
   Mic, 
-  Settings, 
   Plus, 
   Trash2, 
   Download,
   Play,
-  Pause,
-  Volume2,
   Search,
-  Filter,
-  RefreshCw
+  RefreshCw,
+  MessageSquare
 } from 'lucide-react';
 
 const TwilioCallingService: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'calling' | 'numbers' | 'buy' | 'history' | 'recordings'>('buy');
+  const [activeTab, setActiveTab] = useState<'calling' | 'numbers' | 'buy' | 'sms' | 'history' | 'recordings'>('buy');
   const [searchAreaCode, setSearchAreaCode] = useState('');
   const [isSearchingNumbers, setIsSearchingNumbers] = useState(false);
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([]);
-  const [selectedPhoneNumber, setSelectedPhoneNumber] = useState<string>('');
   
   const userPhoneNumbers = useUserPhoneNumbers();
 
@@ -148,6 +145,7 @@ const TwilioCallingService: React.FC = () => {
               { id: 'calling', label: 'Make Calls', icon: PhoneCall },
               { id: 'numbers', label: 'My Numbers', icon: Phone },
               { id: 'buy', label: 'Buy Numbers', icon: Plus },
+              { id: 'sms', label: 'SMS', icon: MessageSquare },
               { id: 'history', label: 'Call History', icon: History },
               { id: 'recordings', label: 'Recordings', icon: Mic }
             ].map((tab) => {
@@ -243,6 +241,11 @@ const TwilioCallingService: React.FC = () => {
                 </div>
               )}
             </div>
+          )}
+
+          {/* SMS Tab */}
+          {activeTab === 'sms' && (
+            <SMSComponent />
           )}
 
           {/* Phone Numbers Tab */}
