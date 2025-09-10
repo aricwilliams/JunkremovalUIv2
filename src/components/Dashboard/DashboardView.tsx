@@ -34,22 +34,17 @@ const DashboardView: React.FC = () => {
       };
     }
 
-    // Filter for actual jobs (estimates with amount > 0 and job statuses)
+    // Filter for actual jobs (same filter as Jobs tab)
     const jobs = estimates.filter(estimate => 
-      estimate.amount && estimate.amount > 0 && 
-      (estimate.status === 'accepted' || 
-       estimate.status === 'scheduled' || 
-       estimate.status === 'in progress' || 
-       estimate.status === 'completed' || 
-       estimate.status === 'cancelled')
+      estimate.status === 'accepted' ||
+      estimate.status === 'scheduled' ||
+      estimate.status === 'in progress' ||
+      estimate.status === 'completed' ||
+      estimate.status === 'cancelled'
     );
 
-    // Upcoming jobs (scheduled and in progress)
-    const upcomingJobs = jobs.filter(job => 
-      (job.status === 'scheduled' || job.status === 'in progress') && 
-      job.preferred_date && 
-      new Date(job.preferred_date) >= new Date()
-    ).slice(0, 5);
+    // Upcoming jobs (all jobs from Jobs tab)
+    const upcomingJobs = jobs.slice(0, 5);
 
     // Open estimates (need review, pending, quoted)
     const openEstimates = estimates.filter(estimate => 
@@ -69,7 +64,7 @@ const DashboardView: React.FC = () => {
       job.status === 'completed' && 
       job.preferred_date && 
       job.preferred_date.startsWith(currentMonth)
-    ).reduce((sum, job) => sum + (job.amount || 0), 0);
+    ).reduce((sum, job) => sum + (job.quote_amount || 0), 0);
 
     // Active leads (estimates that need review or are pending)
     const activeLeads = estimates.filter(estimate => 
@@ -203,61 +198,22 @@ const DashboardView: React.FC = () => {
                 <p className="text-gray-500">No upcoming jobs scheduled</p>
               </div>
             ) : (
-              <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-2">
                 {dashboardData.upcomingJobs.map((job) => (
-                  <div key={job.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 mb-2">
-                          <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{job.full_name}</h3>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)} self-start`}>
-                            {job.status}
-                          </span>
-                        </div>
-                        
-                        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                            <span className="truncate">{job.service_address}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                            <span>{job.preferred_time || 'No time specified'}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                            <span>${job.amount?.toLocaleString() || '0'}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
-                            <span>{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'No date'}</span>
-                          </div>
-                        </div>
+                  <div key={job.id} className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-medium text-gray-900 text-sm truncate">{job.full_name}</span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
+                          {job.status}
+                        </span>
                       </div>
-
-                      <div className="flex flex-row sm:flex-col space-x-1 sm:space-x-0 sm:space-y-2 ml-2 sm:ml-4">
-                        <button
-                          onClick={() => handleGoogleMaps(job.service_address)}
-                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Open in Google Maps"
-                        >
-                          <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleCall(job.phone_number)}
-                          className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          title="Call customer"
-                        >
-                          <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEmail(job.email_address)}
-                          className="p-1.5 sm:p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                          title="Email customer"
-                        >
-                          <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
-                        </button>
+                      <div className="text-xs text-gray-600 truncate">
+                        {job.service_address} • {job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'No date'}
                       </div>
+                    </div>
+                    <div className="text-sm font-medium text-gray-900">
+                      ${job.quote_amount?.toLocaleString() || '0'}
                     </div>
                   </div>
                 ))}
@@ -352,7 +308,7 @@ const DashboardView: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{job.full_name}</h3>
                     <p className="text-xs sm:text-sm text-gray-600 truncate">
-                      {job.service_address} • ${job.amount?.toLocaleString() || '0'} • {job.updated_at ? new Date(job.updated_at).toLocaleDateString() : 'No date'}
+                      {job.service_address} • ${job.quote_amount?.toLocaleString() || '0'} • {job.updated_at ? new Date(job.updated_at).toLocaleDateString() : 'No date'}
                     </p>
                   </div>
                   <button className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm flex-shrink-0">

@@ -106,18 +106,19 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
 
             return (
               <div key={step.key} className="flex flex-col items-center flex-1">
-                <div className={`flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 transition-all duration-300 ${isCompleted
+                <div className={`flex items-center justify-center w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full border-2 transition-all duration-300 ${isCompleted
                     ? 'bg-green-500 border-green-500 text-white shadow-lg'
                     : isCurrent
                       ? 'bg-blue-500 border-blue-500 text-white shadow-lg scale-110'
                       : 'bg-gray-100 border-gray-300 text-gray-400'
                   }`}>
-                  <Icon className="w-6 h-6 sm:w-8 sm:h-8" />
+                  <Icon className="w-4 h-4 sm:w-6 sm:h-6 md:w-8 md:h-8" />
                 </div>
 
-                <span className={`mt-2 text-xs sm:text-sm font-medium text-center transition-colors duration-300 ${isActive ? 'text-gray-900' : 'text-gray-400'
+                <span className={`mt-1 sm:mt-2 font-medium text-center transition-colors duration-300 ${isActive ? 'text-gray-900' : 'text-gray-400'
                   }`}>
-                  {step.label}
+                  <span className="hidden sm:inline text-xs">{step.label}</span>
+                  <span className="sm:hidden text-xs leading-tight">{step.label.split(' ')[0]}</span>
                 </span>
 
                 {/* Progress indicator */}
