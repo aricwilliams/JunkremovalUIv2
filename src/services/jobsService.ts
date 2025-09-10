@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Job } from '../types';
 import { coordinateService } from './coordinateService';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000').replace('/api/v1/auth', '');
 
 // Enhanced error handling
 export class ApiError extends Error {

@@ -128,59 +128,59 @@ const DashboardView: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow p-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="w-6 h-6 text-blue-600" />
+            <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+              <Calendar className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Upcoming Jobs</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Upcoming Jobs</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {dashboardData.stats.upcomingJobsCount}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
+            <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+              <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Monthly Revenue</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 ${dashboardData.stats.monthlyRevenue.toLocaleString()}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Users className="w-6 h-6 text-yellow-600" />
+            <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+              <Users className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Leads</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Active Leads</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {dashboardData.stats.activeLeads}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Star className="w-6 h-6 text-purple-600" />
+            <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+              <Star className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Customer Rating</p>
-              <p className="text-2xl font-bold text-gray-900">
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Customer Rating</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">
                 {dashboardData.stats.customerRating}/5.0
               </p>
             </div>
@@ -189,76 +189,73 @@ const DashboardView: React.FC = () => {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Upcoming Jobs */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Upcoming Jobs</h2>
-            <p className="text-sm text-gray-600">Next 5 scheduled jobs</p>
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Upcoming Jobs</h2>
+            <p className="text-xs sm:text-sm text-gray-600">Next 5 scheduled jobs</p>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {dashboardData.upcomingJobs.length === 0 ? (
               <div className="text-center py-8">
                 <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">No upcoming jobs scheduled</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {dashboardData.upcomingJobs.map((job) => (
-                  <div key={job.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div key={job.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="font-medium text-gray-900">{job.full_name}</h3>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 mb-2">
+                          <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{job.full_name}</h3>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(job.status)} self-start`}>
                             {job.status}
                           </span>
                         </div>
                         
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{job.service_address}</span>
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{job.service_address}</span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <Clock className="w-4 h-4" />
+                            <Clock className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>{job.preferred_time || 'No time specified'}</span>
                           </div>
-                        </div>
-
-                        <div className="flex items-center space-x-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
-                            <DollarSign className="w-4 h-4" />
+                            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>${job.amount?.toLocaleString() || '0'}</span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
+                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'No date'}</span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-col space-y-2 ml-4">
+                      <div className="flex flex-row sm:flex-col space-x-1 sm:space-x-0 sm:space-y-2 ml-2 sm:ml-4">
                         <button
                           onClick={() => handleGoogleMaps(job.service_address)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Open in Google Maps"
                         >
-                          <ExternalLink className="w-4 h-4" />
+                          <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button
                           onClick={() => handleCall(job.phone_number)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Call customer"
                         >
-                          <Phone className="w-4 h-4" />
+                          <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button
                           onClick={() => handleEmail(job.email_address)}
-                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                           title="Email customer"
                         >
-                          <Mail className="w-4 h-4" />
+                          <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </div>
@@ -271,57 +268,57 @@ const DashboardView: React.FC = () => {
 
         {/* Open Estimates */}
         <div className="bg-white rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900">Open Estimates</h2>
-            <p className="text-sm text-gray-600">Leads awaiting response</p>
+          <div className="p-4 sm:p-6 border-b border-gray-200">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Open Estimates</h2>
+            <p className="text-xs sm:text-sm text-gray-600">Leads awaiting response</p>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {dashboardData.openEstimates.length === 0 ? (
               <div className="text-center py-8">
                 <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
                 <p className="text-gray-500">No open estimates</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {dashboardData.openEstimates.map((estimate) => (
-                  <div key={estimate.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div key={estimate.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="font-medium text-gray-900">{estimate.full_name}</h3>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(estimate.status)}`}>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2 mb-2">
+                          <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{estimate.full_name}</h3>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(estimate.status)} self-start`}>
                             {estimate.status}
                           </span>
                         </div>
                         
-                        <div className="flex items-center space-x-4 text-sm text-gray-600 mb-2">
+                        <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm text-gray-600 mb-2">
                           <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
-                            <span>{estimate.service_address}</span>
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                            <span className="truncate">{estimate.service_address}</span>
                           </div>
                           <div className="flex items-center space-x-1">
-                            <DollarSign className="w-4 h-4" />
+                            <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
                             <span>${estimate.quote_amount?.toLocaleString() || 'Pending quote'}</span>
                           </div>
                         </div>
 
-                        <p className="text-sm text-gray-600 line-clamp-2">{estimate.additional_notes || 'No additional notes'}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{estimate.additional_notes || 'No additional notes'}</p>
                       </div>
 
-                      <div className="flex flex-col space-y-2 ml-4">
+                      <div className="flex flex-row sm:flex-col space-x-1 sm:space-x-0 sm:space-y-2 ml-2 sm:ml-4">
                         <button
                           onClick={() => handleCall(estimate.phone_number)}
-                          className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                           title="Call customer"
                         >
-                          <Phone className="w-4 h-4" />
+                          <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                         <button
                           onClick={() => handleEmail(estimate.email_address)}
-                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          className="p-1.5 sm:p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                           title="Email customer"
                         >
-                          <Mail className="w-4 h-4" />
+                          <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </div>
@@ -335,30 +332,30 @@ const DashboardView: React.FC = () => {
 
       {/* Recent Activity */}
       <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-          <p className="text-sm text-gray-600">Latest completed jobs</p>
+        <div className="p-4 sm:p-6 border-b border-gray-200">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <p className="text-xs sm:text-sm text-gray-600">Latest completed jobs</p>
         </div>
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {dashboardData.recentCompletedJobs.length === 0 ? (
             <div className="text-center py-8">
               <CheckCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">No recent completed jobs</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {dashboardData.recentCompletedJobs.map((job) => (
-                <div key={job.id} className="flex items-center space-x-4 p-4 border border-gray-200 rounded-lg">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                <div key={job.id} className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 border border-gray-200 rounded-lg">
+                  <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg flex-shrink-0">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900">{job.full_name}</h3>
-                    <p className="text-sm text-gray-600">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-gray-900 text-sm sm:text-base truncate">{job.full_name}</h3>
+                    <p className="text-xs sm:text-sm text-gray-600 truncate">
                       {job.service_address} • ${job.amount?.toLocaleString() || '0'} • {job.updated_at ? new Date(job.updated_at).toLocaleDateString() : 'No date'}
                     </p>
                   </div>
-                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                  <button className="px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm flex-shrink-0">
                     Request Review
                   </button>
                 </div>

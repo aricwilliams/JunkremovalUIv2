@@ -198,51 +198,53 @@ const JobsListView: React.FC<JobsListViewProps> = ({
               <div key={job.id} className="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
                   <div className="flex-1 cursor-pointer" onClick={() => handleJobClick(job)}>
-                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2 text-center sm:text-left">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors">
                         {job.full_name || 'Unknown Customer'} - #{job.id}
                       </h3>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status || 'need review')}`}>
-                        {getStatusIcon(job.status || 'need review')}
-                        <span className="ml-1 capitalize">{(job.status || 'need review').replace('-', ' ')}</span>
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        job.request_priority === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        <span className="ml-1 capitalize">{job.request_priority || 'standard'}</span>
-                      </span>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        job.is_new_client ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        <span className="ml-1">{job.is_new_client ? 'New Client' : 'Existing Client'}</span>
-                      </span>
+                      <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status || 'need review')}`}>
+                          {getStatusIcon(job.status || 'need review')}
+                          <span className="ml-1 capitalize">{(job.status || 'need review').replace('-', ' ')}</span>
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          job.request_priority === 'urgent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          <span className="ml-1 capitalize">{job.request_priority || 'standard'}</span>
+                        </span>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          job.is_new_client ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          <span className="ml-1">{job.is_new_client ? 'New Client' : 'Existing Client'}</span>
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600">
-                      <div className="flex items-center space-x-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600 text-center sm:text-left">
+                      <div className="flex items-center justify-center sm:justify-start space-x-1">
                         <MapPin className="w-4 h-4 flex-shrink-0" />
                         <span className="truncate">
                           {job.service_address || 'N/A'}
                         </span>
                       </div>
 
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center justify-center sm:justify-start space-x-1">
                         <Calendar className="w-4 h-4 flex-shrink-0" />
                         <span>{job.preferred_date ? new Date(job.preferred_date).toLocaleDateString() : 'N/A'}</span>
                       </div>
 
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center justify-center sm:justify-start space-x-1">
                         <Clock className="w-4 h-4 flex-shrink-0" />
                         <span>{job.preferred_time || 'N/A'}</span>
                       </div>
 
-                      <div className="flex items-center space-x-1">
+                      <div className="flex items-center justify-center sm:justify-start space-x-1">
                         <DollarSign className="w-4 h-4 flex-shrink-0" />
                         <span>${job.quote_amount ? parseFloat(job.quote_amount).toLocaleString() : 'Not quoted'}</span>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600 mt-2 text-center sm:text-left">
                       <div>
                         <span className="font-medium">Volume:</span> {job.approximate_volume || 'N/A'}
                       </div>
@@ -257,7 +259,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 text-sm text-gray-600 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 text-sm text-gray-600 mt-2 text-center sm:text-left">
                       <div>
                         <span className="font-medium">Materials:</span> {job.material_types?.join(', ') || 'N/A'}
                       </div>
@@ -278,7 +280,7 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600 mt-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-sm text-gray-600 mt-2 text-center sm:text-left">
                       <div>
                         <span className="font-medium">Created:</span> {new Date(job.created_at).toLocaleDateString()}
                       </div>
@@ -294,21 +296,21 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                     </div>
 
                     {job.access_considerations && (
-                      <div className="mt-2">
+                      <div className="mt-2 text-center sm:text-left">
                         <span className="text-sm font-medium text-gray-700">Access:</span>
                         <p className="text-sm text-gray-600">{job.access_considerations}</p>
                       </div>
                     )}
 
                     {job.additional_notes && (
-                      <div className="mt-2">
+                      <div className="mt-2 text-center sm:text-left">
                         <span className="text-sm font-medium text-gray-700">Notes:</span>
                         <p className="text-sm text-gray-600 line-clamp-2">{job.additional_notes}</p>
                       </div>
                     )}
 
                     {/* Special Considerations */}
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="mt-2 flex flex-wrap gap-1 justify-center sm:justify-start">
                       {[
                         { key: 'items_filled_water', label: 'Water', icon: '💧' },
                         { key: 'items_filled_oil_fuel', label: 'Oil/Fuel', icon: '⛽' },
@@ -331,14 +333,14 @@ const JobsListView: React.FC<JobsListViewProps> = ({
                   </div>
 
                   <div className="flex flex-col sm:flex-col-reverse sm:items-end space-y-2 sm:space-y-0">
-                    <div className="flex flex-col sm:items-end text-sm text-gray-500 space-y-1">
+                    <div className="flex flex-col sm:items-end text-sm text-gray-500 space-y-1 text-center sm:text-right">
                       <div>Estimate ID: <span className="font-medium">#{job.id}</span></div>
                       <div>Status: <span className="font-medium capitalize">{job.status || 'pending'}</span></div>
                       {job.quote_amount && (
                         <div>Quote: <span className="font-medium text-green-600">${parseFloat(job.quote_amount).toLocaleString()}</span></div>
                       )}
                     </div>
-                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 items-center sm:items-stretch">
                       <button
                         onClick={() => handleViewEstimateDetails(job)}
                         className="w-full sm:w-auto px-3 py-1.5 sm:py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"

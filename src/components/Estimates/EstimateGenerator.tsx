@@ -446,17 +446,17 @@ const EstimatesDashboard: React.FC = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Estimates & Client Requests</h1>
-          <p className="text-gray-600">Manage client portal requests and create estimates</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+        <div className="text-center sm:text-left">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Estimates & Client Requests</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage client portal requests and create estimates</p>
         </div>
-        <div className="flex space-x-2">
+        <div className="flex justify-center sm:justify-end">
           <button
             onClick={() => setShowNewRequest(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Request</span>
@@ -478,15 +478,16 @@ const EstimatesDashboard: React.FC = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
+                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors ${activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
+                  <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
                   {tab.badge && tab.badge > 0 && (
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    <span className="inline-flex items-center px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                       {tab.badge}
                     </span>
                   )}
@@ -496,22 +497,22 @@ const EstimatesDashboard: React.FC = () => {
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {/* Client Requests Tab */}
           {activeTab === 'requests' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Pending Client Requests</h2>
-                <div className="flex space-x-2">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 text-center sm:text-left">Pending Client Requests</h2>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <button
                     onClick={refreshEstimates}
-                    className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                    className="flex items-center justify-center space-x-1 px-3 py-1 bg-blue-600 text-white text-xs sm:text-sm rounded hover:bg-blue-700 transition-colors"
                     title="Refresh Requests"
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Refresh</span>
                   </button>
-                  <select className="px-3 py-1 border border-gray-300 rounded text-sm">
+                  <select className="px-3 py-1 border border-gray-300 rounded text-xs sm:text-sm">
                     <option value="all">All Priority</option>
                     <option value="urgent">Urgent</option>
                     <option value="high">High</option>
@@ -530,55 +531,57 @@ const EstimatesDashboard: React.FC = () => {
                   </div>
                 ) : (
                   requests.map((request) => (
-                  <div key={request.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div key={request.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">Request #{request.id}</h3>
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(request.status)}`}>
-                            {(request.status || 'need review').toUpperCase()}
-                          </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(request.request_priority)}`}>
-                            {(request.request_priority || 'standard').toUpperCase()}
-                          </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
+                          <h3 className="font-semibold text-gray-900 text-center sm:text-left">Request #{request.id}</h3>
+                          <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(request.status)}`}>
+                              {(request.status || 'need review').toUpperCase()}
+                            </span>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(request.request_priority)}`}>
+                              {(request.request_priority || 'standard').toUpperCase()}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600 mb-2">
-                          <div className="flex items-center space-x-1">
-                            <User className="w-4 h-4" />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600 mb-2 text-center sm:text-left">
+                          <div className="flex items-center justify-center sm:justify-start space-x-1">
+                            <User className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{request.full_name}</span>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Phone className="w-4 h-4" />
+                          <div className="flex items-center justify-center sm:justify-start space-x-1">
+                            <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{request.phone_number}</span>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Mail className="w-4 h-4" />
+                          <div className="flex items-center justify-center sm:justify-start space-x-1">
+                            <Mail className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{request.email_address}</span>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-600 mb-2">
-                          <div className="flex items-center space-x-1">
-                            <MapPin className="w-4 h-4" />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs sm:text-sm text-gray-600 mb-2 text-center sm:text-left">
+                          <div className="flex items-center justify-center sm:justify-start space-x-1">
+                            <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{request.service_address}</span>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Calendar className="w-4 h-4" />
+                          <div className="flex items-center justify-center sm:justify-start space-x-1">
+                            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>Created: {request.created_at ? new Date(request.created_at).toLocaleDateString() : 'N/A'}</span>
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Package className="w-4 h-4" />
+                          <div className="flex items-center justify-center sm:justify-start space-x-1">
+                            <Package className="w-3 h-3 sm:w-4 sm:h-4" />
                             <span>{request.approximate_volume}</span>
                           </div>
                         </div>
 
                         {request.additional_notes && (
-                          <p className="text-sm text-gray-600 mb-2">{request.additional_notes}</p>
+                          <p className="text-xs sm:text-sm text-gray-600 mb-2 text-center sm:text-left">{request.additional_notes}</p>
                         )}
 
                         {request.material_types && Array.isArray(request.material_types) && request.material_types.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mb-2">
+                          <div className="flex flex-wrap gap-1 mb-2 justify-center sm:justify-start">
                             {request.material_types.map((type: any, index: number) => (
                               <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
                                 {type}
@@ -589,21 +592,21 @@ const EstimatesDashboard: React.FC = () => {
 
                       </div>
 
-                      <div className="flex flex-col space-y-2">
+                      <div className="flex flex-col sm:flex-row sm:flex-col space-y-2 sm:space-y-2">
                         <button
                           onClick={() => handleViewEstimate(request)}
-                          className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          className="flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>View Details</span>
                         </button>
-                          <button
-                            onClick={() => handleCalculateQuote(request)}
-                            className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                          >
-                            <Calculator className="w-4 h-4" />
+                        <button
+                          onClick={() => handleCalculateQuote(request)}
+                          className="flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                        >
+                          <Calculator className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>Calculate Quote</span>
-                          </button>
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -615,19 +618,19 @@ const EstimatesDashboard: React.FC = () => {
 
           {/* Estimates Tab */}
           {activeTab === 'estimates' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900">Estimates</h2>
-                <div className="flex space-x-2">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 text-center sm:text-left">Estimates</h2>
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <button
                     onClick={refreshEstimates}
-                    className="flex items-center space-x-1 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                    className="flex items-center justify-center space-x-1 px-3 py-1 bg-blue-600 text-white text-xs sm:text-sm rounded hover:bg-blue-700 transition-colors"
                     title="Refresh Estimates"
                   >
-                    <RefreshCw className="w-4 h-4" />
+                    <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>Refresh</span>
                   </button>
-                  <select className="px-3 py-1 border border-gray-300 rounded text-sm">
+                  <select className="px-3 py-1 border border-gray-300 rounded text-xs sm:text-sm">
                     <option value="all">All Status</option>
                     <option value="draft">Draft</option>
                     <option value="sent">Sent</option>
@@ -646,61 +649,64 @@ const EstimatesDashboard: React.FC = () => {
                   </div>
                 ) : (
                   quotedEstimates.map((estimate) => (
-                    <div key={estimate.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                    <div className="flex items-start justify-between">
+                    <div key={estimate.id} className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
                         <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="font-semibold text-gray-900">Estimate #{estimate.id}</h3>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(estimate.status)}`}>
-                            {(estimate.status || 'need review').toUpperCase()}
-                          </span>
+                        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-2">
+                          <h3 className="font-semibold text-gray-900 text-center sm:text-left">Estimate #{estimate.id}</h3>
+                          <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEstimateStatusColor(estimate.status)}`}>
+                              {(estimate.status || 'need review').toUpperCase()}
+                            </span>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(estimate.request_priority)}`}>
                               {(estimate.request_priority || 'standard').toUpperCase()}
                             </span>
+                          </div>
                         </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-600">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600 text-center sm:text-left">
                             <div>
-                              <div className="font-medium text-gray-900">Customer Information</div>
+                              <div className="font-medium text-gray-900 mb-1">Customer Information</div>
                               <div>Name: {estimate.full_name}</div>
                               <div>Phone: {estimate.phone_number}</div>
                               <div>Email: {estimate.email_address}</div>
                         </div>
                             <div>
-                              <div className="font-medium text-gray-900">Service Details</div>
+                              <div className="font-medium text-gray-900 mb-1">Service Details</div>
                               <div>Address: {estimate.service_address}</div>
                               <div>Location: {estimate.location_on_property}</div>
                               <div>Volume: {estimate.approximate_volume}</div>
-                              <div>Materials: {estimate.material_types.join(', ')}</div>
+                              <div>Materials: {estimate.material_types?.join(', ') || 'N/A'}</div>
                             </div>
                           </div>
                           {estimate.quote_amount && (
-                            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded">
-                              <div className="text-sm font-medium text-green-800">
+                            <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-center sm:text-left">
+                              <div className="text-xs sm:text-sm font-medium text-green-800">
                                 Quote Amount: ${(estimate.quote_amount || 0).toLocaleString()}
                               </div>
                             </div>
                           )}
                           {estimate.additional_notes && (
-                            <p className="mt-2 text-sm text-gray-600">Notes: {estimate.additional_notes}</p>
+                            <p className="mt-2 text-xs sm:text-sm text-gray-600 text-center sm:text-left">Notes: {estimate.additional_notes}</p>
                           )}
-                          <div className="mt-2 text-xs text-gray-500">
+                          <div className="mt-2 text-xs text-gray-500 text-center sm:text-left">
                             Created: {estimate.created_at ? new Date(estimate.created_at).toLocaleDateString() : 'N/A'} at {estimate.created_at ? new Date(estimate.created_at).toLocaleTimeString() : 'N/A'}
                       </div>
                         </div>
-                        <div className="flex flex-col space-y-2 ml-4">
+                        <div className="flex flex-col sm:flex-row sm:flex-col space-y-2 sm:space-y-2 sm:ml-4">
                         <button
                           onClick={() => handleViewEstimate(estimate)}
-                          className="flex items-center space-x-2 px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                          className="flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                           <span>Edit Details</span>
                         </button>
                         <button
                           onClick={() => handleSendToCustomer(estimate)}
-                          className="flex items-center space-x-2 px-3 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                          className="flex items-center justify-center space-x-2 px-3 py-2 text-xs sm:text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                         >
-                          <Send className="w-4 h-4" />
-                          <span>Send to Customer for Review</span>
+                          <Send className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <span className="hidden sm:inline">Send to Customer for Review</span>
+                          <span className="sm:hidden">Send to Customer</span>
                         </button>
                           <div className="relative group">
                             <button 

@@ -107,69 +107,69 @@ const JobStatsDashboard: React.FC = () => {
   const completionRate = stats.total_jobs > 0 ? (stats.completed_jobs / stats.total_jobs) * 100 : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Job Statistics</h2>
-          <p className="text-gray-600">Overview of your job performance and metrics</p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <div className="text-center sm:text-left">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900">Job Statistics</h2>
+          <p className="text-sm sm:text-base text-gray-600">Overview of your job performance and metrics</p>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <TrendingUp className="w-4 h-4" />
+        <div className="flex items-center justify-center sm:justify-end space-x-2 text-xs sm:text-sm text-gray-500">
+          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
           <span>Real-time data from estimates</span>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {/* Total Jobs */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
+            <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+              <BarChart3 className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Jobs</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total_jobs}</p>
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total Jobs</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{stats.total_jobs}</p>
             </div>
           </div>
         </div>
 
         {/* Total Revenue */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
+            <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+              <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.total_revenue.toLocaleString()}</p>
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Total Revenue</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">${stats.total_revenue.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
         {/* Average Job Value */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
+            <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+              <TrendingUp className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Average Job Value</p>
-              <p className="text-2xl font-bold text-gray-900">${stats.average_job_value.toLocaleString()}</p>
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Average Job Value</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">${stats.average_job_value.toLocaleString()}</p>
             </div>
           </div>
         </div>
 
         {/* Completion Rate */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white rounded-lg shadow p-3 sm:p-6">
           <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <CheckCircle className="w-6 h-6 text-yellow-600" />
+            <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+              <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600" />
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Completion Rate</p>
-              <p className="text-2xl font-bold text-gray-900">{completionRate.toFixed(1)}%</p>
+            <div className="ml-2 sm:ml-4">
+              <p className="text-xs sm:text-sm font-medium text-gray-600">Completion Rate</p>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900">{completionRate.toFixed(1)}%</p>
             </div>
           </div>
         </div>

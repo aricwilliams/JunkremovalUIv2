@@ -65,34 +65,34 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <button
             onClick={onMenuToggle}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
           >
-            <Menu className="w-5 h-5 text-gray-600" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
           </button>
-          <div className="bg-blue-50 p-3 rounded-lg">
+          <div className="bg-blue-50 p-2 sm:p-3 rounded-lg">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-blue-800">Today's Revenue</span>
-              <DollarSign className="w-4 h-4 text-blue-600" />
+              <span className="text-xs sm:text-sm font-medium text-blue-800">Today's Revenue</span>
+              <DollarSign className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
             </div>
-            <p className="text-lg font-bold text-blue-900">${headerStats.todayRevenue.toLocaleString()}</p>
+            <p className="text-sm sm:text-lg font-bold text-blue-900">${headerStats.todayRevenue.toLocaleString()}</p>
           </div>
 
-          <div className="bg-orange-50 p-3 rounded-lg">
+          <div className="bg-orange-50 p-2 sm:p-3 rounded-lg">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-orange-800">Scheduled Jobs</span>
-              <Clock className="w-4 h-4 text-orange-600" />
+              <span className="text-xs sm:text-sm font-medium text-orange-800">Scheduled Jobs</span>
+              <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-600" />
             </div>
-            <p className="text-lg font-bold text-orange-900">
+            <p className="text-sm sm:text-lg font-bold text-orange-900">
               {headerStats.pendingJobs}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           {/* <AuthStatus /> */}
           
           {/* <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors relative">
@@ -104,19 +104,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
             )}
           </button> */}
 
-          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-2">
-            <User className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700 hidden sm:block">
+          <div className="flex items-center space-x-1 sm:space-x-2 bg-gray-100 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2">
+            <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+            <span className="text-xs sm:text-sm font-medium text-gray-700 hidden sm:block">
               {user?.first_name || user?.username || 'User'}
             </span>
           </div>
 
           <button
             onClick={handleLogout}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-red-600"
+            className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 hover:text-red-600"
             title="Logout"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
         </div>
       </div>
