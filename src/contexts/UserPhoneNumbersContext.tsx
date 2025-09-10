@@ -17,9 +17,7 @@ export const UserPhoneNumbersProvider: React.FC<{ children: ReactNode }> = ({ ch
     const transformPhoneNumber = (backendNumber: any): PhoneNumber => ({
         id: String(backendNumber.id),
         phone_number: backendNumber.phone_number,
-        userId: String(backendNumber.user_id),
         user_id: backendNumber.user_id,
-        twilioSid: backendNumber.twilio_sid,
         twilio_sid: backendNumber.twilio_sid,
         friendly_name: backendNumber.friendly_name,
         provider: 'twilio',
@@ -216,7 +214,7 @@ export const UserPhoneNumbersProvider: React.FC<{ children: ReactNode }> = ({ ch
             const response = await twilioApi.getCallLogs(params || {});
             if (response.success && response.callLogs) {
                 const validCallLogs = (response.callLogs || []).filter(Boolean);
-                const transformedCalls = validCallLogs.map(transformCall).filter((call): call is TwilioCall => call !== null);
+                const transformedCalls = validCallLogs.map(transformCall).filter((call: TwilioCall | null): call is TwilioCall => call !== null);
                 setCalls(transformedCalls);
             } else {
                 setCalls([]);
@@ -264,7 +262,7 @@ export const UserPhoneNumbersProvider: React.FC<{ children: ReactNode }> = ({ ch
             const response = await twilioApi.getRecordings(params || {});
             if (response.success && response.recordings) {
                 const validRecordings = (response.recordings || []).filter(Boolean);
-                const transformedRecordings = validRecordings.map(transformRecording).filter((recording): recording is TwilioRecording => recording !== null);
+                const transformedRecordings = validRecordings.map(transformRecording).filter((recording: TwilioRecording | null): recording is TwilioRecording => recording !== null);
                 setRecordings(transformedRecordings);
             } else {
                 setRecordings([]);

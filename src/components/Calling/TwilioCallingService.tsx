@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 const TwilioCallingService: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'calling' | 'numbers' | 'history' | 'recordings'>('calling');
+  const [activeTab, setActiveTab] = useState<'calling' | 'numbers' | 'buy' | 'history' | 'recordings'>('buy');
   const [searchAreaCode, setSearchAreaCode] = useState('');
   const [isSearchingNumbers, setIsSearchingNumbers] = useState(false);
   const [availableNumbers, setAvailableNumbers] = useState<any[]>([]);
@@ -146,7 +146,8 @@ const TwilioCallingService: React.FC = () => {
           <nav className="flex flex-wrap -mb-px">
             {[
               { id: 'calling', label: 'Make Calls', icon: PhoneCall },
-              { id: 'numbers', label: 'Phone Numbers', icon: Phone },
+              { id: 'numbers', label: 'My Numbers', icon: Phone },
+              { id: 'buy', label: 'Buy Numbers', icon: Plus },
               { id: 'history', label: 'Call History', icon: History },
               { id: 'recordings', label: 'Recordings', icon: Mic }
             ].map((tab) => {
@@ -175,28 +176,81 @@ const TwilioCallingService: React.FC = () => {
             <BrowserCallComponent />
           )}
 
-          {/* Phone Numbers Tab */}
-          {activeTab === 'numbers' && (
+          {/* Buy Numbers Tab */}
+          {activeTab === 'buy' && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900 text-center sm:text-left">My Phone Numbers</h2>
+              <div className="text-center sm:text-left">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">Buy New Phone Number</h2>
+                <p className="text-sm text-gray-600">Search for and purchase a new phone number for your business.</p>
+              </div>
+
+              {/* Search Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 sm:p-6">
+                <h3 className="text-sm sm:text-base font-medium text-blue-900 mb-3">Search for Available Numbers</h3>
                 <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <input
                     type="text"
-                    placeholder="Area code (e.g., 415)"
+                    placeholder="Enter area code (e.g., 415, 910, 212)"
                     value={searchAreaCode}
                     onChange={(e) => setSearchAreaCode(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 rounded text-xs sm:text-sm"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                   />
                   <button
                     onClick={handleSearchNumbers}
-                    disabled={isSearchingNumbers}
-                    className="flex items-center space-x-1 px-3 py-1 bg-green-600 text-white text-xs sm:text-sm rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+                    disabled={isSearchingNumbers || !searchAreaCode.trim()}
+                    className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                   >
-                    <Search className="w-3 h-3 sm:w-4 sm:h-4" />
-                    <span>Search</span>
+                    <Search className="w-4 h-4" />
+                    <span>{isSearchingNumbers ? 'Searching...' : 'Search Numbers'}</span>
                   </button>
                 </div>
+                <p className="text-xs sm:text-sm text-blue-700 mt-2">
+                  Enter a 3-digit area code to find available phone numbers in that area. Numbers typically cost $1.00/month.
+                </p>
+              </div>
+
+              {/* Available Numbers */}
+              {availableNumbers.length > 0 && (
+                <div>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Available Numbers</h3>
+                  <div className="space-y-3">
+                    {availableNumbers.map((number, index) => (
+                      <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex-1 mb-2 sm:mb-0">
+                          <div className="font-medium text-gray-900 text-lg">{number.phoneNumber}</div>
+                          <div className="text-sm text-gray-600">
+                            Monthly Cost: ${number.monthlyCost || '1.00'} • Area Code: {searchAreaCode}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleBuyNumber(number.phoneNumber)}
+                          className="flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm sm:text-base"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span>Buy This Number</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {availableNumbers.length === 0 && searchAreaCode && !isSearchingNumbers && (
+                <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
+                  <Phone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No numbers found</h3>
+                  <p className="text-gray-600">Try a different area code or check back later for new numbers.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Phone Numbers Tab */}
+          {activeTab === 'numbers' && (
+            <div className="space-y-4">
+              <div className="text-center sm:text-left">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">My Phone Numbers</h2>
+                <p className="text-sm text-gray-600 mt-1">Manage your purchased phone numbers</p>
               </div>
 
               {/* My Numbers */}
@@ -204,10 +258,17 @@ const TwilioCallingService: React.FC = () => {
                 {userPhoneNumbers.loading ? (
                   <div className="text-center py-4">Loading phone numbers...</div>
                 ) : userPhoneNumbers.phoneNumbers.length === 0 ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-8 bg-gray-50 border border-gray-200 rounded-lg">
                     <Phone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No phone numbers</h3>
-                    <p className="text-gray-500">Search for and purchase a phone number to get started.</p>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No phone numbers yet</h3>
+                    <p className="text-gray-600 mb-4">Go to the "Buy Numbers" tab to search for and purchase your first phone number.</p>
+                    <button
+                      onClick={() => setActiveTab('buy')}
+                      className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Go to Buy Numbers</span>
+                    </button>
                   </div>
                 ) : (
                   userPhoneNumbers.phoneNumbers.map((number) => (
