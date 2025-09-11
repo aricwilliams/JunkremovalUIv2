@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Building, 
-  Bell, 
+import {
+  Settings,
+  Building,
+  Bell,
   Save,
   Loader2,
   Upload,
   Image,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { businessService, BusinessProfile, BusinessUpdateData } from '../../services/businessService';
+import awsUploadService from '../../services/awsUploadService';
+import { notificationsService } from '../../services/notificationsService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 
 const SettingsView: React.FC = () => {
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [activeTab, setActiveTab] = useState('business');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -89,7 +94,7 @@ const SettingsView: React.FC = () => {
    // { id: 'account', label: 'Account', icon: User }
   ];
 
-  // Load business profile on component mount
+  // Load business profile and logo on component mount
   useEffect(() => {
     const loadBusinessProfile = async () => {
       if (!user) return;
@@ -99,6 +104,7 @@ const SettingsView: React.FC = () => {
       
       try {
         const profile = await businessService.getProfile();
+        console.log('Loaded business profile:', profile); // Debug log
         setBusinessProfile(profile);
         
         // Update settings with loaded data
@@ -124,6 +130,17 @@ const SettingsView: React.FC = () => {
             yearsInBusiness: profile.years_in_business || 0
           }
         }));
+
+        // 👉 show a preview immediately if API already has a logo_url
+        if (profile.logo_url) {
+          setLogoPreview(profile.logo_url);
+        }
+
+        // Try to load logo from uploads API (may overwrite with newest tagged "logo")
+        await loadLogoFromUploads();
+        
+        // Load existing notifications
+        await loadNotifications();
       } catch (error: any) {
         setError(error.message);
         console.error('Failed to load business profile:', error);
@@ -135,7 +152,84 @@ const SettingsView: React.FC = () => {
     loadBusinessProfile();
   }, [user]);
 
+  // Load logo from uploads API
+  const loadLogoFromUploads = async () => {
+    try {
+      // Fetch all uploads
+      const response = await awsUploadService.getUserMedia();
+      
+      if (response.success && response.data.length > 0) {
+        // Find the most recent logo upload
+        const logoUpload = response.data.find((item: any) => 
+          item.tags?.includes('logo') || 
+          item.metadata?.upload_type === 'logo'
+        );
+        
+        if (logoUpload) {
+          console.log('Found logo in uploads:', logoUpload.file_url);
+          setLogoPreview(logoUpload.file_url);
+          updateSetting('business', 'logo', logoUpload.file_url);
+        }
+      } else {
+        console.log('No logo found in uploads');
+      }
+    } catch (error) {
+      console.log('Error fetching logo from uploads:', error);
+    }
+  };
+
+  // Load existing notifications
+  const loadNotifications = async () => {
+    try {
+      console.log('Loading existing notifications...');
+      const response = await notificationsService.getNotifications({ limit: 1 });
+      console.log('Notifications response:', response);
+      
+      if (response.notifications.length > 0) {
+        const latestNotification = response.notifications[0];
+        console.log('Latest notification:', latestNotification);
+        if (latestNotification.google_review_link) {
+          console.log('Found existing Google review link:', latestNotification.google_review_link);
+          updateSetting('notifications', 'googleReviewLink', latestNotification.google_review_link);
+          console.log('Updated settings with existing link');
+        } else {
+          console.log('No Google review link in latest notification');
+        }
+      } else {
+        console.log('No notifications found');
+      }
+    } catch (error) {
+      console.log('Error fetching notifications:', error);
+    }
+  };
+
   const handleSaveSettings = async () => {
+    console.log('Save button clicked! Making API call...');
+    
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      if (settings.notifications.googleReviewLink) {
+        console.log('Making API call with:', settings.notifications.googleReviewLink);
+        
+        // Just make the damn API call
+        const result = await notificationsService.createNotification(settings.notifications.googleReviewLink);
+        console.log('API call result:', result);
+        showSuccess('Google Review Link Saved!', 'Your Google review link has been saved successfully.');
+        setSaving(false);
+        return; // Exit here so it doesn't continue to business logic
+      } else {
+        showError('Error', 'Please enter a Google review link');
+      }
+    } catch (error: any) {
+      console.error('API call failed:', error);
+      showError('Save Failed', error.message || 'Failed to save Google review link');
+    } finally {
+      setSaving(false);
+    }
+
     if (activeTab !== 'business') {
       // For other tabs, just show success message for now
       setSuccess('Settings saved successfully!');
@@ -196,16 +290,10 @@ const SettingsView: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+    // Validate file using AWS upload service
+    const validation = awsUploadService.validateFile(file, 5); // 5MB limit
+    if (!validation.valid) {
+      setError(validation.error || 'Invalid file');
       return;
     }
 
@@ -213,7 +301,8 @@ const SettingsView: React.FC = () => {
     setError('');
 
     try {
-      const response = await businessService.uploadLogo(file);
+      // Use AWS upload service for logo upload
+      const response = await awsUploadService.uploadLogo(file);
       
       if (response.success) {
         setBusinessProfile(response.data.business);
@@ -221,9 +310,11 @@ const SettingsView: React.FC = () => {
         setSuccess('Logo uploaded successfully!');
         setTimeout(() => setSuccess(''), 3000);
         
-        // Create preview URL
-        const previewUrl = URL.createObjectURL(file);
-        setLogoPreview(previewUrl);
+        // Set logo preview using the API response URL
+        setLogoPreview(response.data.logoUrl || response.data.file_url);
+        
+        // Refresh logo from uploads to ensure consistency
+        await loadLogoFromUploads();
       } else {
         setError(response.message || 'Failed to upload logo');
       }
@@ -234,7 +325,26 @@ const SettingsView: React.FC = () => {
     }
   };
 
-  const removeLogo = () => {
+  const removeLogo = async () => {
+    try {
+      // Find and delete the logo from uploads
+      const response = await awsUploadService.getUserMedia();
+      
+      if (response.success && response.data.length > 0) {
+        const logoUpload = response.data.find((item: any) => 
+          item.tags?.includes('logo') || 
+          item.metadata?.upload_type === 'logo'
+        );
+        
+        if (logoUpload) {
+          await awsUploadService.deleteMedia(logoUpload.id);
+          console.log('Logo deleted from uploads');
+        }
+      }
+    } catch (error) {
+      console.log('Error deleting logo from uploads:', error);
+    }
+    
     setLogoPreview(null);
     updateSetting('business', 'logo', '');
   };
@@ -358,20 +468,38 @@ const SettingsView: React.FC = () => {
 
         {/* Logo Upload Section */}
         <div>
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Business Logo</h3>
-          <div className="flex items-start space-x-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900">Business Logo</h3>
+            <button
+              onClick={loadLogoFromUploads}
+              className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-start space-y-4 sm:space-y-0 sm:space-x-6">
             {/* Logo Preview */}
-            <div className="flex-shrink-0">
-              <div className="w-32 h-32 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
-                {settings.business.logo || logoPreview ? (
+            <div className="flex-shrink-0 flex justify-center sm:justify-start">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                {logoPreview ? (
                   <img
-                    src={logoPreview || `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}${settings.business.logo}`}
+                    key={logoPreview}            // 👉 force reload when URL changes
+                    src={logoPreview}
                     alt="Business Logo"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('Logo failed to load:', e.currentTarget.src);
+                      // show a small inline error instead of hiding the element forever
+                      e.currentTarget.replaceWith(Object.assign(document.createElement('div'), {
+                        className: 'p-2 text-xs text-red-500',
+                        innerText: 'Logo failed to load (check URL/permissions)'
+                      }));
+                    }}
                   />
                 ) : (
                   <div className="text-center text-gray-400">
-                    <Image className="w-8 h-8 mx-auto mb-2" />
+                    <Image className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-1 sm:mb-2" />
                     <span className="text-xs">No Logo</span>
                   </div>
                 )}
@@ -385,7 +513,7 @@ const SettingsView: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Upload Logo
                   </label>
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                     <label className="cursor-pointer">
                       <input
                         type="file"
@@ -394,7 +522,7 @@ const SettingsView: React.FC = () => {
                         className="hidden"
                         disabled={logoUploading}
                       />
-                      <div className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                      <div className="flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors w-full sm:w-auto">
                         {logoUploading ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -409,10 +537,10 @@ const SettingsView: React.FC = () => {
                       </div>
                     </label>
                     
-                    {settings.business.logo && (
+                    {logoPreview && (
                       <button
                         onClick={removeLogo}
-                        className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors w-full sm:w-auto"
                       >
                         <X className="w-4 h-4" />
                         <span>Remove</span>

@@ -270,7 +270,7 @@ const EstimatesDashboard: React.FC = () => {
       await refreshEstimates();
       
       // Generate customer review URL
-      const url = `${window.location.origin}/junkremoval/customer-review/${estimate.id}`;
+      const url = `${window.location.origin}/junkremoval/app/customer-review/${estimate.id}`;
       setCustomerReviewUrl(url);
       setShowCustomerUrlModal(true);
     } catch (error) {

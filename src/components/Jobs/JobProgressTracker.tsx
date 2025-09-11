@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { EstimateRequest } from '../../types';
+import { notificationsService } from '../../services/notificationsService';
 import {
   Play,
   CheckCircle,
@@ -8,7 +9,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  Send,
   AlertCircle,
   Truck,
   Star,
@@ -24,6 +24,99 @@ interface JobProgressTrackerProps {
 const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUpdate }) => {
   const [isSendingNotification, setIsSendingNotification] = useState(false);
   const [notificationSent, setNotificationSent] = useState(false);
+  
+  // Email modal state
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
+
+  // Junk removal email templates
+  const emailTemplates = [
+    {
+      id: 1,
+      name: "On My Way",
+      subject: "We're on our way! - Junk Removal Service",
+      body: `Hi ${job.full_name}!
+
+We're on our way to your location at ${job.service_address} for your junk removal service. We'll be there in about 15 minutes.
+
+If you have any questions or need to reach us, please don't hesitate to call.
+
+Thank you for choosing our junk removal service!
+
+Best regards,
+Your Junk Removal Team`
+    },
+    {
+      id: 2,
+      name: "Job Started",
+      subject: "We've started your junk removal job",
+      body: `Hi ${job.full_name}!
+
+We've arrived and started your junk removal job at ${job.service_address}. We'll keep you updated on our progress and let you know when we're finished.
+
+If you have any questions or need to reach us, please don't hesitate to call.
+
+Thank you for choosing our junk removal service!
+
+Best regards,
+Your Junk Removal Team`
+    },
+    {
+      id: 3,
+      name: "Job Completed",
+      subject: "Your junk removal job is complete!",
+      body: `Hi ${job.full_name}!
+
+Great news! Your junk removal job at ${job.service_address} is now complete. We've removed all the items as discussed and cleaned up the area.
+
+We'll send you an invoice shortly. Thank you for choosing our junk removal service!
+
+If you have any questions or need additional services, please don't hesitate to reach out.
+
+Best regards,
+Your Junk Removal Team`
+    },
+    {
+      id: 4,
+      name: "Review Request",
+      subject: "How was your junk removal experience?",
+      body: `Hi ${job.full_name}!
+
+Thank you for choosing our junk removal service! We hope you were satisfied with the work we completed at ${job.service_address}.
+
+We'd love to hear about your experience! If you have a moment, please consider leaving us a review. Your feedback helps us improve our service and helps other customers find us.
+
+[REVIEW_LINK_PLACEHOLDER]
+
+Thank you again for your business!
+
+Best regards,
+Your Junk Removal Team`
+    },
+    {
+      id: 5,
+      name: "Follow-up Check",
+      subject: "How are you doing after your junk removal?",
+      body: `Hi ${job.full_name}!
+
+We wanted to follow up and see how you're doing after our junk removal service at ${job.service_address}. We hope everything met your expectations!
+
+If you have any additional items you need removed or if you know anyone else who might need junk removal services, please don't hesitate to reach out. We'd be happy to help!
+
+Thank you for choosing our junk removal service!
+
+Best regards,
+Your Junk Removal Team`
+    },
+    {
+      id: 6,
+      name: "Custom Message",
+      subject: "",
+      body: ""
+    }
+  ];
 
   const statusSteps = [
     { key: 'need review', label: 'Need Review', icon: AlertCircle, color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
@@ -45,14 +138,29 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
   const sendNotification = async (type: 'on-way' | 'started' | 'completed') => {
     setIsSendingNotification(true);
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
     const messages = {
       'on-way': `Hi ${job.full_name}! Your junk removal team is on the way to ${job.service_address}. We'll be there in about 15 minutes.`,
       'started': `Hi ${job.full_name}! We've started your junk removal job at ${job.service_address}. We'll keep you updated on our progress.`,
       'completed': `Hi ${job.full_name}! Your junk removal job at ${job.service_address} is complete! We'll send you an invoice shortly. Thank you for choosing us!`
     };
+
+    if (type === 'on-way' && job.phone_number) {
+      // Open phone messaging app with pre-filled message
+      const message = messages[type];
+      console.log('Sending "On My Way" to:', job.phone_number, 'for customer:', job.full_name);
+      const smsUrl = `sms:${job.phone_number}?&body=${encodeURIComponent(message)}`;
+      window.location.href = smsUrl;
+      
+      setNotificationSent(true);
+      setIsSendingNotification(false);
+      
+      // Reset notification sent state after 3 seconds
+      setTimeout(() => setNotificationSent(false), 3000);
+      return;
+    }
+
+    // For other notification types, simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     console.log('Sending notification:', messages[type]);
     setNotificationSent(true);
@@ -68,9 +176,78 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
     }
   };
 
-  const handleEmail = () => {
+  const handleRequestReview = async () => {
+    try {
+      // Get the Google review link from notifications
+      const response = await notificationsService.getNotifications({ limit: 1 });
+      
+      if (response.notifications.length > 0 && response.notifications[0].google_review_link) {
+        const reviewLink = response.notifications[0].google_review_link;
+        const message = `Hi ${job.full_name}! Thank you for choosing us for your junk removal service. We'd love to hear about your experience! Please take a moment to leave us a review: ${reviewLink}`;
+        
+        if (job.phone_number) {
+          console.log('Sending review request to:', job.phone_number, 'for customer:', job.full_name);
+          const smsUrl = `sms:${job.phone_number}?&body=${encodeURIComponent(message)}`;
+          window.location.href = smsUrl;
+        }
+      } else {
+        // No review link found
+        const message = `Hi ${job.full_name}! Thank you for choosing us for your junk removal service. We'd love to hear about your experience! Please take a moment to leave us a review. (Note: Review link needs to be added to settings)`;
+        
+        if (job.phone_number) {
+          const smsUrl = `sms:${job.phone_number}?&body=${encodeURIComponent(message)}`;
+          window.location.href = smsUrl;
+        }
+      }
+    } catch (error) {
+      console.error('Error getting review link:', error);
+      // Fallback message without review link
+      const message = `Hi ${job.full_name}! Thank you for choosing us for your junk removal service. We'd love to hear about your experience! Please take a moment to leave us a review. (Note: Review link needs to be added to settings)`;
+      
+      if (job.phone_number) {
+        const smsUrl = `sms:${job.phone_number}?&body=${encodeURIComponent(message)}`;
+        window.location.href = smsUrl;
+      }
+    }
+  };
+
+
+  const handleEmailCompose = () => {
     if (job.email_address) {
-      window.open(`mailto:${job.email_address}`, '_self');
+      const subject = emailSubject ? `&su=${encodeURIComponent(emailSubject)}` : '';
+      const body = emailBody ? `&body=${encodeURIComponent(emailBody)}` : '';
+      const url = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(job.email_address)}${subject}${body}`;
+      window.open(url, '_blank');
+      setShowEmailModal(false);
+      setEmailSubject('');
+      setEmailBody('');
+      setSelectedTemplate(null);
+    }
+  };
+
+  const handleTemplateSelect = async (templateId: number) => {
+    const template = emailTemplates.find(t => t.id === templateId);
+    if (template) {
+      setSelectedTemplate(templateId);
+      setEmailSubject(template.subject);
+      
+      let body = template.body;
+      
+      // Handle review link placeholder
+      if (templateId === 4 && body.includes('[REVIEW_LINK_PLACEHOLDER]')) {
+        try {
+          const response = await notificationsService.getNotifications({ limit: 1 });
+          if (response.notifications.length > 0 && response.notifications[0].google_review_link) {
+            body = body.replace('[REVIEW_LINK_PLACEHOLDER]', response.notifications[0].google_review_link);
+          } else {
+            body = body.replace('[REVIEW_LINK_PLACEHOLDER]', 'Please visit our Google page to leave a review.');
+          }
+        } catch (error) {
+          body = body.replace('[REVIEW_LINK_PLACEHOLDER]', 'Please visit our Google page to leave a review.');
+        }
+      }
+      
+      setEmailBody(body);
     }
   };
 
@@ -196,7 +373,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
               className="flex items-center justify-center space-x-2 bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 text-sm font-medium shadow-sm"
             >
               <Truck className="w-4 h-4" />
-              <span>{isSendingNotification ? 'Sending...' : 'On My Way'}</span>
+              <span>{isSendingNotification ? 'Opening...' : 'Text: On My Way'}</span>
             </button>
           )}
 
@@ -224,9 +401,12 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
 
           {/* Additional Actions */}
           {job.status === 'completed' && (
-            <button className="flex items-center justify-center space-x-2 bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm">
+            <button 
+              onClick={handleRequestReview}
+              className="flex items-center justify-center space-x-2 bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm"
+            >
               <Star className="w-4 h-4" />
-              <span>Request Review</span>
+              <span>Text: Request Review</span>
             </button>
           )}
 
@@ -261,7 +441,7 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
           </button>
 
           <button
-            onClick={handleEmail}
+            onClick={() => setShowEmailModal(true)}
             className="flex flex-col items-center space-y-2 px-4 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all duration-200 text-sm font-medium shadow-md hover:shadow-lg transform hover:scale-105"
           >
             <Mail className="w-6 h-6" />
@@ -309,6 +489,94 @@ const JobProgressTracker: React.FC<JobProgressTrackerProps> = ({ job, onStatusUp
           </div>
         )}
       </div>
+
+      {/* Email Composition Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Compose Email - {job.full_name}</h3>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Template Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Template
+                </label>
+                <select
+                  value={selectedTemplate || ''}
+                  onChange={(e) => handleTemplateSelect(parseInt(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">Select a template...</option>
+                  {emailTemplates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Subject
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Email subject..."
+                />
+              </div>
+
+              {/* Email Body */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={emailBody}
+                  onChange={(e) => setEmailBody(e.target.value)}
+                  rows={12}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Email message..."
+                />
+              </div>
+
+              {/* Recipient Info */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>To:</strong> {job.email_address}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEmailCompose}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Open in Gmail
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

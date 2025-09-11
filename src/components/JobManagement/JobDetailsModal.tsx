@@ -14,6 +14,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import JobPhotoUpload from '../Jobs/JobPhotoUpload';
 
 interface JobDetailsModalProps {
   job: Job;
@@ -179,45 +180,13 @@ const JobDetailsModal: React.FC<JobDetailsModalProps> = ({ job, onClose, onUpdat
 
           {/* Photos */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Photos</h3>
-            <div className="space-y-4">
-              {job.beforePhotos.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-2">Before Photos</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {job.beforePhotos.map((photo, index) => (
-                      <img
-                        key={index}
-                        src={photo}
-                        alt={`Before ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {job.afterPhotos.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-2">After Photos</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {job.afterPhotos.map((photo, index) => (
-                      <img
-                        key={index}
-                        src={photo}
-                        alt={`After ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              <button className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 transition-colors">
-                <Camera className="w-4 h-4" />
-                <span>Add Photos</span>
-              </button>
-            </div>
+            <JobPhotoUpload 
+              jobId={job.id} 
+              onPhotosUpdated={(photos) => {
+                // Update job with new photos if needed
+                console.log('Photos updated:', photos);
+              }}
+            />
           </div>
         </div>
 
