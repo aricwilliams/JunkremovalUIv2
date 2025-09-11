@@ -78,12 +78,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: Calculator,
       badge: null
     },
-    {
-      id: 'calling',
-      label: 'Calling Service',
-      icon: Phone,
-      badge: null
-    },
+    // {
+    //   id: 'calling',
+    //   label: 'Calling Service',
+    //   icon: Phone,
+    //   badge: null
+    // },
     // {
     //   id: 'trucks',
     //   label: 'Fleet Management',
@@ -108,12 +108,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     //   icon: BarChart3,
     //   badge: null
     // },
-    // {
-    //   id: 'settings',
-    //   label: 'Settings',
-    //   icon: Settings,
-    //   badge: null
-    // }
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: Settings,
+      badge: null
+    }
   ];
 
   const handleMenuClick = (viewId: string) => {
