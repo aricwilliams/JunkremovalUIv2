@@ -202,6 +202,12 @@ const EstimatesDashboard: React.FC = () => {
     try {
       console.log('Sending estimate to customer for review:', estimate.id);
       
+      // Check if estimate has a quote amount
+      if (!estimate.quote_amount || estimate.quote_amount <= 0) {
+        alert('Please set a quote amount before sending to customer.');
+        return;
+      }
+      
       // Clean up phone number format (remove dashes, spaces, parentheses)
       const cleanPhoneNumber = estimate.phone_number?.replace(/[\s\-\(\)]/g, '') || '';
 
@@ -258,8 +264,7 @@ const EstimatesDashboard: React.FC = () => {
           how_did_you_hear: estimate.how_did_you_hear,
           request_priority: estimate.request_priority,
           
-          // UPDATE FIELDS - These are what we want to change
-          status: 'quoted',
+          // UPDATE FIELDS - These are what we want to change (don't change status when sending to customer)
           amount: estimate.quote_amount, // Set amount column to same value as quote_amount
           quote_amount: estimate.quote_amount,
           quote_notes: estimate.quote_notes
