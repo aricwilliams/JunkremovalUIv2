@@ -26,16 +26,28 @@ const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customerReviewId, setCustomerReviewId] = useState<string | null>(null);
 
-  // Handle URL-based routing for customer review page
+  // Handle URL-based routing for customer review page using hash routing
   useEffect(() => {
-    const path = window.location.pathname;
-    const customerReviewMatch = path.match(/^\/customer-review\/(\d+)$/);
+    const checkHash = () => {
+      const hash = window.location.hash; // e.g. #/customer-review/5
+      const customerReviewMatch = hash.match(/^#\/customer-review\/(\d+)$/);
+      
+      if (customerReviewMatch) {
+        setCustomerReviewId(customerReviewMatch[1]);
+      } else {
+        setCustomerReviewId(null);
+      }
+    };
+
+    // Check hash on mount
+    checkHash();
+
+    // Listen for hash changes
+    window.addEventListener('hashchange', checkHash);
     
-    if (customerReviewMatch) {
-      setCustomerReviewId(customerReviewMatch[1]);
-    } else {
-      setCustomerReviewId(null);
-    }
+    return () => {
+      window.removeEventListener('hashchange', checkHash);
+    };
   }, []);
 
   // If we're on a customer review page, show it regardless of authentication
