@@ -270,7 +270,11 @@ const EstimatesDashboard: React.FC = () => {
       await refreshEstimates();
       
       // Generate customer review URL
-      const url = `${window.location.origin}/junkremoval/app/customer-review/${estimate.id}`;
+      const isProduction = import.meta.env.VITE_API_BASE_URL?.includes('junkremovalapi.onrender.com');
+      const baseUrl = isProduction 
+        ? 'https://junkremovalappplanner.com' 
+        : window.location.origin;
+      const url = `${baseUrl}/app/customer-review/${estimate.id}`;
       setCustomerReviewUrl(url);
       setShowCustomerUrlModal(true);
     } catch (error) {

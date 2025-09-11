@@ -29,7 +29,7 @@ const AppContent: React.FC = () => {
   // Handle URL-based routing for customer review page
   useEffect(() => {
     const path = window.location.pathname;
-    const customerReviewMatch = path.match(/^\/junkremoval\/app\/customer-review\/(\d+)$/);
+    const customerReviewMatch = path.match(/^\/app\/customer-review\/(\d+)$/);
     
     if (customerReviewMatch) {
       setCustomerReviewId(customerReviewMatch[1]);
