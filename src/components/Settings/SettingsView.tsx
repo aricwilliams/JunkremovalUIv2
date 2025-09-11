@@ -1,19 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Settings, 
-  User, 
   Building, 
-  MapPin, 
-  CreditCard, 
   Bell, 
-  Shield,
-  Smartphone,
-  Mail,
-  DollarSign,
-  Clock,
-  Users,
   Save,
-  Loader2
+  Loader2,
+  Upload,
+  Image,
+  X
 } from 'lucide-react';
 import { businessService, BusinessProfile, BusinessUpdateData } from '../../services/businessService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -25,7 +19,9 @@ const SettingsView: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
   const [settings, setSettings] = useState({
     business: {
@@ -117,7 +113,7 @@ const SettingsView: React.FC = () => {
             state: profile.business_state || '',
             zipCode: profile.business_zip_code || '',
             website: '', // Not in API response
-            logo: '', // Not in API response
+            logo: profile.logo_url || '', // Load from API response
             ownerFirstName: profile.owner_first_name || '',
             ownerLastName: profile.owner_last_name || '',
             ownerPhone: profile.owner_phone || '',
@@ -186,7 +182,7 @@ const SettingsView: React.FC = () => {
     }
   };
 
-  const updateSetting = (category: string, field: string, value: any) => {
+  const updateSetting = (category: keyof typeof settings, field: string, value: any) => {
     setSettings(prev => ({
       ...prev,
       [category]: {
@@ -194,6 +190,53 @@ const SettingsView: React.FC = () => {
         [field]: value
       }
     }));
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be less than 5MB');
+      return;
+    }
+
+    setLogoUploading(true);
+    setError('');
+
+    try {
+      const response = await businessService.uploadLogo(file);
+      
+      if (response.success) {
+        setBusinessProfile(response.data.business);
+        updateSetting('business', 'logo', response.data.logoUrl);
+        setSuccess('Logo uploaded successfully!');
+        setTimeout(() => setSuccess(''), 3000);
+        
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
+        setLogoPreview(previewUrl);
+      } else {
+        setError(response.message || 'Failed to upload logo');
+      }
+    } catch (error: any) {
+      setError(error.message || 'Failed to upload logo');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoPreview(null);
+    updateSetting('business', 'logo', '');
   };
 
   const renderBusinessSettings = () => {
@@ -309,6 +352,81 @@ const SettingsView: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               />
+            </div>
+          </div>
+        </div>
+
+        {/* Logo Upload Section */}
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Business Logo</h3>
+          <div className="flex items-start space-x-6">
+            {/* Logo Preview */}
+            <div className="flex-shrink-0">
+              <div className="w-32 h-32 border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50 flex items-center justify-center">
+                {settings.business.logo || logoPreview ? (
+                  <img
+                    src={logoPreview || `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'}${settings.business.logo}`}
+                    alt="Business Logo"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center text-gray-400">
+                    <Image className="w-8 h-8 mx-auto mb-2" />
+                    <span className="text-xs">No Logo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Upload Controls */}
+            <div className="flex-1">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload Logo
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <label className="cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                        disabled={logoUploading}
+                      />
+                      <div className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                        {logoUploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="w-4 h-4" />
+                            <span>Choose File</span>
+                          </>
+                        )}
+                      </div>
+                    </label>
+                    
+                    {settings.business.logo && (
+                      <button
+                        onClick={removeLogo}
+                        className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="text-xs text-gray-500">
+                  <p>• Supported formats: JPEG, PNG, GIF, WebP</p>
+                  <p>• Maximum file size: 5MB</p>
+                  <p>• Recommended size: 200x200 pixels or larger</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -569,15 +687,15 @@ const SettingsView: React.FC = () => {
           
           <div className="space-y-3">
             {[
-              { key: 'requireCheckIn', label: 'Require crew check-in for jobs' },
-              { key: 'allowPhotoUpload', label: 'Allow crew to upload photos' },
-              { key: 'trackTime', label: 'Track time for each job' },
-              { key: 'autoAssignJobs', label: 'Auto-assign jobs to available crews' }
+              { key: 'requireCheckIn' as const, label: 'Require crew check-in for jobs' },
+              { key: 'allowPhotoUpload' as const, label: 'Allow crew to upload photos' },
+              { key: 'trackTime' as const, label: 'Track time for each job' },
+              { key: 'autoAssignJobs' as const, label: 'Auto-assign jobs to available crews' }
             ].map(setting => (
               <label key={setting.key} className="flex items-center space-x-3 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={settings.team[setting.key]}
+                  checked={settings.team[setting.key as keyof typeof settings.team] as boolean}
                   onChange={(e) => updateSetting('team', setting.key, e.target.checked)}
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />

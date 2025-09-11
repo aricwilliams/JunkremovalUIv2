@@ -39,6 +39,9 @@ app.use(generalLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve static files (logos)
+app.use('/uploads', express.static('uploads'));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({

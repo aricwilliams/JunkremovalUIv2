@@ -1,6 +1,44 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const { pool } = require('../config/database');
+
+// Configure multer for logo uploads
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../uploads/logos');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const businessId = req.business.id;
+    const ext = path.extname(file.originalname);
+    const filename = `logo_${businessId}_${Date.now()}${ext}`;
+    cb(null, filename);
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files (JPEG, PNG, GIF, WebP) are allowed'));
+    }
+  }
+});
 
 // Generate JWT token
 const generateToken = (businessId, username) => {
@@ -214,7 +252,7 @@ const updateProfile = async (req, res) => {
     const allowedFields = [
       'business_name', 'business_phone', 'business_address', 'business_city', 'business_state', 'business_zip_code',
       'owner_first_name', 'owner_last_name', 'owner_email', 'owner_phone',
-      'license_number', 'insurance_number', 'service_radius', 'number_of_trucks', 'years_in_business'
+      'license_number', 'insurance_number', 'service_radius', 'number_of_trucks', 'years_in_business', 'logo_url'
     ];
 
     const updateFields = [];
@@ -285,9 +323,71 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// Upload Logo
+const uploadLogo = async (req, res) => {
+  try {
+    const businessId = req.business.id;
+    
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+        error: 'NO_FILE'
+      });
+    }
+
+    // Delete old logo if it exists
+    const [businessRows] = await pool.execute(
+      'SELECT logo_url FROM businesses WHERE id = ?',
+      [businessId]
+    );
+
+    if (businessRows.length > 0 && businessRows[0].logo_url) {
+      const oldLogoPath = path.join(__dirname, '../uploads/logos', path.basename(businessRows[0].logo_url));
+      if (fs.existsSync(oldLogoPath)) {
+        fs.unlinkSync(oldLogoPath);
+      }
+    }
+
+    // Update database with new logo URL
+    const logoUrl = `/uploads/logos/${req.file.filename}`;
+    await pool.execute(
+      'UPDATE businesses SET logo_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [logoUrl, businessId]
+    );
+
+    // Get updated business
+    const [updatedBusinessRows] = await pool.execute(
+      'SELECT * FROM businesses WHERE id = ?',
+      [businessId]
+    );
+
+    const business = updatedBusinessRows[0];
+
+    res.status(200).json({
+      success: true,
+      message: 'Logo uploaded successfully',
+      data: {
+        business: sanitizeBusiness(business),
+        logoUrl: logoUrl
+      }
+    });
+
+  } catch (error) {
+    console.error('Upload logo error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: 'INTERNAL_ERROR'
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
   getProfile,
-  updateProfile
+  updateProfile,
+  uploadLogo,
+  upload
 };

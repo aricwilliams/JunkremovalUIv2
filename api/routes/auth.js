@@ -1,6 +1,6 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
-const { signup, login, getProfile, updateProfile } = require('../controllers/authController');
+const { signup, login, getProfile, updateProfile, uploadLogo, upload } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const { validate, businessSignupSchema, businessLoginSchema, businessUpdateSchema } = require('../middleware/validation');
 
@@ -30,5 +30,6 @@ router.post('/login', validate(businessLoginSchema), login);
 // Protected routes
 router.get('/profile', authenticateToken, getProfile);
 router.put('/profile', authenticateToken, validate(businessUpdateSchema), updateProfile);
+router.post('/upload-logo', authenticateToken, upload.single('logo'), uploadLogo);
 
 module.exports = router;

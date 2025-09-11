@@ -24,6 +24,7 @@ export interface BusinessProfile {
   service_radius: number;
   number_of_trucks: number;
   years_in_business: number;
+  logo_url?: string;
 }
 
 export interface BusinessUpdateData {
@@ -48,6 +49,15 @@ export interface BusinessUpdateResponse {
   message: string;
   data: {
     business: BusinessProfile;
+  };
+}
+
+export interface LogoUploadResponse {
+  success: boolean;
+  message: string;
+  data: {
+    business: BusinessProfile;
+    logoUrl: string;
   };
 }
 
@@ -99,6 +109,35 @@ export const businessService = {
         error.response?.data?.message || 
         error.message || 
         'Failed to fetch business profile'
+      );
+    }
+  },
+
+  // Upload logo
+  async uploadLogo(file: File): Promise<LogoUploadResponse> {
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const formData = new FormData();
+      formData.append('logo', file);
+
+      const response = await axios.post(`${API_BASE_URL}/api/v1/auth/upload-logo`, formData, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      throw new Error(
+        error.response?.data?.message || 
+        error.message || 
+        'Failed to upload logo'
       );
     }
   }
