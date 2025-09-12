@@ -303,7 +303,7 @@ const EstimatesDashboard: React.FC = () => {
 
   const handleSendFormToCustomer = async () => {
     try {
-      // Generate a unique form link using hash routing
+      // Generate a unique form link using the API endpoint
       const isProduction = import.meta.env.VITE_API_BASE_URL?.includes('junkremovalapi.onrender.com');
       const baseUrl = isProduction 
         ? 'https://junkremovalappplanner.com' 
@@ -311,7 +311,7 @@ const EstimatesDashboard: React.FC = () => {
       
       // Generate a unique form ID (using timestamp and random string)
       const formId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const formUrl = `${baseUrl}/app/#/customer-form/${formId}`;
+      const formUrl = `${baseUrl}/customer-form/${formId}`;
 
       // Here you would typically save the form link to your database 
       // For now, we'll just show the link to the user

@@ -18,6 +18,7 @@ import EmployeesView from './components/Employees/EmployeesView';
 import ClientPortal from './components/Portal/ClientPortal';
 import AuthPage from './components/Auth/AuthPage';
 import CustomerReviewPage from './components/CustomerReview/CustomerReviewPage';
+import CustomerFormPage from './components/CustomerForm/CustomerFormPage';
 import TwilioCallingService from './components/Calling/TwilioCallingService';
 
 const AppContent: React.FC = () => {
@@ -25,17 +26,24 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customerReviewId, setCustomerReviewId] = useState<string | null>(null);
+  const [customerFormId, setCustomerFormId] = useState<string | null>(null);
 
-  // Handle URL-based routing for customer review page using hash routing
+  // Handle URL-based routing for customer pages using hash routing
   useEffect(() => {
     const checkHash = () => {
-      const hash = window.location.hash; // e.g. #/customer-review/5
+      const hash = window.location.hash; // e.g. #/customer-review/5 or #/customer-form/abc123
       const customerReviewMatch = hash.match(/^#\/customer-review\/(\d+)$/);
+      const customerFormMatch = hash.match(/^#\/customer-form\/(.+)$/);
       
       if (customerReviewMatch) {
         setCustomerReviewId(customerReviewMatch[1]);
+        setCustomerFormId(null);
+      } else if (customerFormMatch) {
+        setCustomerFormId(customerFormMatch[1]);
+        setCustomerReviewId(null);
       } else {
         setCustomerReviewId(null);
+        setCustomerFormId(null);
       }
     };
 
@@ -53,6 +61,11 @@ const AppContent: React.FC = () => {
   // If we're on a customer review page, show it regardless of authentication
   if (customerReviewId) {
     return <CustomerReviewPage estimateId={customerReviewId} />;
+  }
+
+  // If we're on a customer form page, show it regardless of authentication
+  if (customerFormId) {
+    return <CustomerFormPage formId={customerFormId} />;
   }
 
   const renderCurrentView = () => {
