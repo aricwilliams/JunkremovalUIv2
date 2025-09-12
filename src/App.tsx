@@ -3,8 +3,10 @@ import { AppProvider, useApp } from './contexts/AppContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { UserPhoneNumbersProvider } from './contexts/UserPhoneNumbersContext';
+import { AnnouncementProvider, useAnnouncements } from './contexts/AnnouncementContext';
 import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
+import AnnouncementBar from './components/Common/AnnouncementBar';
 import DashboardView from './components/Dashboard/DashboardView';
 import JobsView from './components/Jobs/JobsView';
 import CalendarView from './components/Calendar/CalendarView';
@@ -24,6 +26,7 @@ import TwilioCallingService from './components/Calling/TwilioCallingService';
 const AppContent: React.FC = () => {
   const { currentView } = useApp();
   const { isAuthenticated, loading } = useAuth();
+  const { isAnnouncementBarVisible, hideAnnouncementBar } = useAnnouncements();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [customerReviewId, setCustomerReviewId] = useState<string | null>(null);
   const [customerFormId, setCustomerFormId] = useState<string | null>(null);
@@ -122,6 +125,11 @@ const AppContent: React.FC = () => {
   // If authenticated, show main app
   return (
     <div className="flex h-screen bg-gray-50">
+      {/* Announcement Bar */}
+      {isAnnouncementBarVisible && (
+        <AnnouncementBar onClose={hideAnnouncementBar} />
+      )}
+
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -130,7 +138,7 @@ const AppContent: React.FC = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className="flex-1 overflow-x-hidden overflow-y-auto">
+        <main className={`flex-1 overflow-x-hidden overflow-y-auto ${isAnnouncementBarVisible ? 'pt-10' : ''}`}>
           {renderCurrentView()}
         </main>
       </div>
@@ -143,9 +151,11 @@ function App() {
     <ToastProvider>
       <AuthProvider>
         <AppProvider>
-          <UserPhoneNumbersProvider>
-            <AppContent />
-          </UserPhoneNumbersProvider>
+          <AnnouncementProvider>
+            <UserPhoneNumbersProvider>
+              <AppContent />
+            </UserPhoneNumbersProvider>
+          </AnnouncementProvider>
         </AppProvider>
       </AuthProvider>
     </ToastProvider>

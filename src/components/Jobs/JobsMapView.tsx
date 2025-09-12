@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { loadModules } from 'esri-loader';
 import { EstimateRequest } from '../../types';
-import { coordinateService } from '../../services/coordinateService';
 import JobDetailsModal from './JobDetailsModal';
 import {
   Filter,
@@ -22,10 +21,8 @@ interface JobsMapViewProps {
   onJobDeleted?: (jobId: number) => void;
 }
 
-interface JobWithCoordinates extends EstimateRequest {
-  latitude: number;
-  longitude: number;
-}
+// Jobs now come with pre-geocoded coordinates from AppContext
+type JobWithCoordinates = EstimateRequest;
 
 // Extend Window interface for global function
 declare global {
@@ -53,8 +50,6 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [jobsWithCoordinates, setJobsWithCoordinates] = useState<JobWithCoordinates[]>([]);
-  const [isGeocoding, setIsGeocoding] = useState(false);
   const [isMapMoving, setIsMapMoving] = useState(false);
   const gotoTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -72,7 +67,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
       if (isMapMoving) return; // Don't start a new move if one is in progress
       
       setIsMapMoving(true);
-      mapInstanceRef.current.goTo(target, { animate: false, ...options })
+      mapInstanceRef.current!.goTo(target, { animate: false, ...options })
         .catch((err: any) => {
           // Ignore expected cancellation errors
           if (err?.name !== 'view:goto-interrupted' && err?.name !== 'AbortError') {
@@ -85,119 +80,12 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
     }, 100); // 100ms debounce
   };
 
-  // Format address for better geocoding
-  const formatAddressForGeocoding = (address: string): string => {
-    if (!address) return '';
-    
-    // Clean up the address
-    let formatted = address
-      .trim()
-      .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
-      .replace(/,\s*,/g, ',') // Remove double commas
-      .replace(/^,|,$/g, '') // Remove leading/trailing commas
-      .trim();
-    
-    // Handle common address formatting issues
-    formatted = formatted
-      .replace(/\bSuite\s+\d+[A-Z]?\b/gi, '') // Remove suite numbers
-      .replace(/\bApt\s+\d+[A-Z]?\b/gi, '') // Remove apartment numbers
-      .replace(/\bUnit\s+\d+[A-Z]?\b/gi, '') // Remove unit numbers
-      .replace(/\b#\d+[A-Z]?\b/gi, '') // Remove # numbers
-      .replace(/\s+/g, ' ') // Normalize spaces again
-      .trim();
-    
-    // Ensure proper comma separation
-    const parts = formatted.split(',').map(part => part.trim()).filter(part => part);
-    formatted = parts.join(', ');
-    
-    console.log(`Formatted address: "${address}" → "${formatted}"`);
-    return formatted;
-  };
-
-  // Geocode addresses to get coordinates
-  const geocodeJobs = async (jobsToGeocode: EstimateRequest[]) => {
-    setIsGeocoding(true);
-    console.log('🌍 Starting geocoding for jobs:', jobsToGeocode.length, 'jobs');
-    try {
-      const jobsWithCoords: JobWithCoordinates[] = [];
-      
-      for (const job of jobsToGeocode) {
-        console.log(`Processing job ${job.id}:`, {
-          id: job.id,
-          service_address: job.service_address,
-          hasLatitude: !!job.latitude,
-          hasLongitude: !!job.longitude
-        });
-        // Always geocode since estimates don't have coordinates in the database
-        console.log(`Geocoding address for job ${job.id}: ${job.service_address}`);
-        
-        // Format the address for better geocoding
-        const formattedAddress = formatAddressForGeocoding(job.service_address);
-        let coordinates = await coordinateService.getLatLng(formattedAddress);
-        
-        // If geocoding fails, try just the street address without city/state
-        if (!coordinates) {
-          console.log(`Trying street address only for job ${job.id}`);
-          const streetAddress = formattedAddress.split(',')[0].trim();
-          console.log(`Street address: ${streetAddress}`);
-          coordinates = await coordinateService.getLatLng(streetAddress);
-        }
-        
-        // If still failing, try just the city and state
-        if (!coordinates) {
-          console.log(`Trying city/state for job ${job.id}`);
-          const cityState = formattedAddress.split(',').slice(-2).join(',').trim();
-          console.log(`City/State: ${cityState}`);
-          coordinates = await coordinateService.getLatLng(cityState);
-        }
-        
-        if (coordinates) {
-          console.log(`✅ Successfully geocoded job ${job.id}:`, coordinates);
-          jobsWithCoords.push({
-            ...job,
-            latitude: coordinates.lat,
-            longitude: coordinates.lng
-          });
-        } else {
-          console.warn(`❌ Failed to geocode address for job ${job.id}: ${job.service_address}`);
-          // Add a fallback coordinate for Southport, NC if all else fails
-          console.log(`📍 Using fallback coordinates for Southport, NC`);
-          jobsWithCoords.push({
-            ...job,
-            latitude: 33.9207, // Southport, NC coordinates
-            longitude: -78.0208
-          });
-        }
-      }
-      
-      console.log(`🎯 Setting ${jobsWithCoords.length} jobs with coordinates`);
-      setJobsWithCoordinates(jobsWithCoords);
-      
-      // Center map on first job's address
-      if (jobsWithCoords.length > 0 && mapInstanceRef.current) {
-        const firstJob = jobsWithCoords[0];
-        console.log('🗺️ Centering map on first job:', {
-          address: firstJob.service_address,
-          coordinates: [firstJob.longitude, firstJob.latitude]
-        });
-        safeGoTo({
-          center: [firstJob.longitude, firstJob.latitude],
-          zoom: 14
-        });
-        saveMapState([firstJob.longitude, firstJob.latitude], 14);
-      } else {
-        console.log('❌ Cannot center map:', {
-          hasJobs: jobsWithCoords.length > 0,
-          hasMap: !!mapInstanceRef.current,
-          jobsCount: jobsWithCoords.length
-        });
-      }
-    } catch (error) {
-      console.error('Error geocoding jobs:', error);
-    } finally {
-      setIsGeocoding(false);
-    }
-  };
+  // Filter jobs that have coordinates for map display
+  const jobsWithCoordinates = jobs.filter(job => 
+    job.latitude && job.longitude && 
+    typeof job.latitude === 'number' && 
+    typeof job.longitude === 'number'
+  );
 
   // Get saved map state from localStorage or use first job's coordinates
   const getSavedMapState = () => {
@@ -221,12 +109,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
   // Get default center from first job's address, fallback to Wilmington, NC
   const getDefaultCenter = (): [number, number] => {
-    if (jobs.length > 0) {
-      // Use the first job's address to get coordinates
-      const firstJob = jobs[0];
-      // For now, return fallback coordinates - the map will center properly after geocoding
-      return [-77.9447, 34.2257]; // Wilmington, NC coordinates as fallback
-    }
+    // For now, return fallback coordinates - the map will center properly after geocoding
     return [-77.9447, 34.2257]; // Wilmington, NC coordinates as fallback
   };
 
@@ -263,22 +146,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   // Use the geocoded jobs with coordinates
   // jobsWithCoordinates is now managed by state and populated by geocodeJobs function
 
-  // Geocode jobs when jobs prop changes
-  useEffect(() => {
-    if (jobs.length > 0) {
-      console.log('🔍 Jobs received for geocoding:', jobs.length, 'jobs');
-      console.log('🔍 First job details:', {
-        id: jobs[0]?.id,
-        address: jobs[0]?.service_address,
-        status: jobs[0]?.status
-      });
-      geocodeJobs(jobs);
-    } else {
-      console.log('🔍 No jobs received for geocoding');
-    }
-  }, [jobs]);
-
-  // Update map markers when geocoded jobs are available
+  // Update map markers when jobs with coordinates are available
   useEffect(() => {
     console.log('useEffect triggered for jobsWithCoordinates:', {
       jobsCount: jobsWithCoordinates.length,
@@ -290,17 +158,21 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
       console.log('Calling updateMarkers...');
       window.updateMarkers();
       
-      // Also try to center the map here as a fallback
+      // Center the map on first job if no saved state
       if (mapInstanceRef.current) {
-        const firstJob = jobsWithCoordinates[0];
-        console.log('Fallback: Centering map on first job:', {
-          address: firstJob.service_address,
-          coordinates: [firstJob.longitude, firstJob.latitude]
-        });
-        safeGoTo({
-          center: [firstJob.longitude, firstJob.latitude],
-          zoom: 14
-        });
+        const savedState = localStorage.getItem('jobsMapState');
+        if (!savedState) {
+          const firstJob = jobsWithCoordinates[0];
+          console.log('Centering map on first job:', {
+            address: firstJob.service_address,
+            coordinates: [firstJob.longitude, firstJob.latitude]
+          });
+          safeGoTo({
+            center: [firstJob.longitude!, firstJob.latitude!],
+            zoom: 14
+          });
+          saveMapState([firstJob.longitude!, firstJob.latitude!], 14);
+        }
       }
     } else {
       console.log('Not calling updateMarkers because:', {
@@ -310,30 +182,16 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
     }
   }, [jobsWithCoordinates]);
 
-  // Get unique employees from jobs
-  const uniqueEmployees = jobs.reduce((acc, job) => {
-    if (job.employee && job.assigned_employee_id) {
-      const employeeKey = job.assigned_employee_id.toString();
-      if (!acc.find(emp => emp.id === employeeKey)) {
-        acc.push({
-          id: employeeKey,
-          name: `${job.employee.first_name} ${job.employee.last_name}`,
-          job_title: job.employee.job_title
-        });
-      }
-    }
-    return acc;
-  }, [] as Array<{id: string, name: string, job_title: string}>);
+  // Get unique employees from jobs (simplified for estimates)
+  const uniqueEmployees: Array<{id: string, name: string, job_title: string}> = [];
 
   const filteredJobs = jobsWithCoordinates.filter(job => {
     const statusMatch = statusFilter === 'all' || job.status === statusFilter;
-    const employeeMatch = employeeFilter === 'all' || 
-      (employeeFilter === 'unassigned' && !job.assigned_employee_id) ||
-      (employeeFilter !== 'unassigned' && job.assigned_employee_id?.toString() === employeeFilter);
-    return statusMatch && employeeMatch;
+    // Employee filtering not applicable for estimates
+    return statusMatch;
   });
 
-  const handleJobUpdated = (updatedJob: Job) => {
+  const handleJobUpdated = (updatedJob: EstimateRequest) => {
     if (onJobUpdated) {
       onJobUpdated(updatedJob);
     }
@@ -540,40 +398,13 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
         saveMapState(center, zoom);
         
         console.log('🗺️ Map centered on first job:', {
-          job: firstJob.customer?.name || firstJob.customerName,
+          job: firstJob.full_name,
           coordinates: { lat: firstJob.latitude, lng: firstJob.longitude }
         });
       }
     }
   }, [filteredJobs, statusFilter, employeeFilter]);
 
-  // Effect to center map when jobs are first loaded
-  useEffect(() => {
-    if (jobs.length > 0 && mapInstanceRef.current && !loading) {
-      const jobsWithCoords = jobs.filter(job => job.latitude && job.longitude);
-      if (jobsWithCoords.length > 0) {
-        const firstJob = jobsWithCoords[0];
-        const center: [number, number] = [firstJob.longitude!, firstJob.latitude!];
-        const zoom = 14;
-        
-        // Only center if we haven't saved a previous state
-        const savedState = localStorage.getItem('jobsMapState');
-        if (!savedState) {
-          mapInstanceRef.current.goTo({
-            center: center,
-            zoom: zoom
-          });
-          
-          saveMapState(center, zoom);
-          
-          console.log('🗺️ Map initialized with first job coordinates:', {
-            job: firstJob.customer?.name || firstJob.customerName,
-            coordinates: { lat: firstJob.latitude, lng: firstJob.longitude }
-          });
-        }
-      }
-    }
-  }, [jobs, loading]);
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -595,15 +426,6 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
   return (
     <div className="relative">
-      {/* Geocoding Status */}
-      {isGeocoding && (
-        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-20">
-          <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            <span className="text-sm">Geocoding addresses...</span>
-          </div>
-        </div>
-      )}
 
       {/* Filters Panel */}
       <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-10">
@@ -744,7 +566,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <DollarSign className="w-4 h-4" />
-                <span>${selectedJob.quote_amount ? parseFloat(selectedJob.quote_amount).toLocaleString() : 'Not quoted'}</span>
+                <span>${selectedJob.quote_amount ? selectedJob.quote_amount.toLocaleString() : 'Not quoted'}</span>
               </div>
 
               <div className="flex items-center space-x-2 text-sm text-gray-600">

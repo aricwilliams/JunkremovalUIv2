@@ -1,3 +1,121 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Announcement Bar Styles */
+.announcement-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.announcement-container {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  min-height: 40px;
+  position: relative;
+}
+
+.announcement-text-container {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  margin-right: 12px;
+}
+
+.announcement-text {
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  animation: scroll 20s linear infinite;
+  display: inline-block;
+  padding-right: 50px;
+}
+
+.announcement-indicators {
+  display: flex;
+  gap: 4px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.announcement-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.announcement-indicator.active {
+  background-color: white;
+}
+
+.announcement-indicator:hover {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.announcement-close {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.announcement-close:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .announcement-container {
+    padding: 6px 12px;
+    min-height: 36px;
+  }
+
+  .announcement-text {
+    font-size: 13px;
+  }
+
+
+  .announcement-indicators {
+    margin-right: 8px;
+  }
+
+  .announcement-indicator {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+/* Adjust for mobile scrolling */
+@media (max-width: 480px) {
+  .announcement-text {
+    animation-duration: 15s;
+  }
+}

@@ -8,13 +8,15 @@ import {
   Upload,
   Image,
   X,
-  RefreshCw
+  RefreshCw,
+  Megaphone
 } from 'lucide-react';
 import { businessService, BusinessProfile, BusinessUpdateData } from '../../services/businessService';
 import awsUploadService from '../../services/awsUploadService';
 import { notificationsService } from '../../services/notificationsService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+import AnnouncementTest from '../Common/AnnouncementTest';
 
 const SettingsView: React.FC = () => {
   const { user } = useAuth();
@@ -90,6 +92,7 @@ const SettingsView: React.FC = () => {
     // { id: 'pricing', label: 'Pricing', icon: DollarSign },
     //{ id: 'schedule', label: 'Schedule', icon: Clock },
     { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'announcements', label: 'Announcements', icon: Megaphone },
   //  { id: 'team', label: 'Team', icon: Users },
    // { id: 'account', label: 'Account', icon: User }
   ];
@@ -872,12 +875,26 @@ const SettingsView: React.FC = () => {
     </div>
   );
 
+  const renderAnnouncementSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Announcement Management</h3>
+        <p className="text-sm text-gray-600 mb-6">
+          Create and manage announcements that appear in the announcement bar at the top of the application.
+        </p>
+        
+        <AnnouncementTest />
+      </div>
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'business': return renderBusinessSettings();
       case 'pricing': return renderPricingSettings();
       case 'schedule': return renderScheduleSettings();
       case 'notifications': return renderNotificationSettings();
+      case 'announcements': return renderAnnouncementSettings();
       case 'team': return renderTeamSettings();
       case 'account': return renderAccountSettings();
       default: return renderBusinessSettings();

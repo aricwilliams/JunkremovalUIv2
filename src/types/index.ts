@@ -74,6 +74,10 @@ export interface EstimateRequest {
   existing_customer_city?: string;
   existing_customer_state?: string;
   existing_customer_zip_code?: string;
+  // Geocoded coordinates
+  latitude?: number;
+  longitude?: number;
+  geocoded_at?: string;
 }
 
 export interface PropertyManager {
@@ -747,4 +751,20 @@ export interface UserPhoneNumbersContextType {
   getCallDetails: (callSid: string) => Promise<TwilioCall>;
   getRecordings: (params?: { callSid?: string; phoneNumberId?: string; limit?: number; page?: number }) => Promise<void>;
   deleteRecording: (recordingSid: string) => Promise<void>;
+}
+
+// Announcement Types
+export interface Announcement {
+  id: number;
+  message: string;
+  is_visible: boolean;
+}
+
+export interface AnnouncementsResponse {
+  success: boolean;
+  data: {
+    announcements: Announcement[];
+  };
+  count: number;
+  timestamp: string;
 }

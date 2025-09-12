@@ -1,8 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Customer, Job, Lead, Crew, PricingItem, Analytics } from '../types';
+import { Customer, Job, Lead, Crew, PricingItem, Analytics, EstimateRequest } from '../types';
 import { jobsService } from '../services/jobsService';
 import { customersService } from '../services/customersService';
-import { estimatesService, EstimateRequest } from '../services/estimatesService';
+import { estimatesService } from '../services/estimatesService';
+import { coordinateService } from '../services/coordinateService';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
 
@@ -25,6 +26,8 @@ interface AppContextType {
   convertLeadToCustomer: (leadId: string) => void;
   loading: boolean;
   error: string | null;
+  isGeocoding: boolean;
+  geocodingProgress: { completed: number; total: number };
   refreshJobs: () => Promise<void>;
   refreshCustomers: () => Promise<void>;
   refreshEstimates: () => Promise<void>;
@@ -100,6 +103,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [currentView, setCurrentView] = useState('dashboard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodingProgress, setGeocodingProgress] = useState({ completed: 0, total: 0 });
 
   // Load jobs from API when authenticated
   const loadJobs = async () => {
@@ -187,6 +192,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       if (response.success && response.data && response.data.estimates) {
         console.log('✅ Setting estimates from API:', response.data.estimates.length, 'estimates');
         setEstimates(response.data.estimates);
+        
+        // Start geocoding addresses in the background
+        geocodeEstimates(response.data.estimates);
       } else {
         console.warn('⚠️ Invalid estimates API response format:', response);
         setEstimates([]);
@@ -194,6 +202,131 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     } catch (err: any) {
       console.error('❌ Failed to load estimates from API:', err);
       setEstimates([]);
+    }
+  };
+
+  // Format address for better geocoding
+  const formatAddressForGeocoding = (address: string): string => {
+    if (!address) return '';
+    
+    // Clean up the address
+    let formatted = address
+      .trim()
+      .replace(/\s+/g, ' ') // Normalize multiple spaces to single space
+      .replace(/,\s*,/g, ',') // Remove double commas
+      .replace(/^,|,$/g, '') // Remove leading/trailing commas
+      .trim();
+    
+    // Handle common address formatting issues
+    formatted = formatted
+      .replace(/\bSuite\s+\d+[A-Z]?\b/gi, '') // Remove suite numbers
+      .replace(/\bApt\s+\d+[A-Z]?\b/gi, '') // Remove apartment numbers
+      .replace(/\bUnit\s+\d+[A-Z]?\b/gi, '') // Remove unit numbers
+      .replace(/\b#\d+[A-Z]?\b/gi, '') // Remove # numbers
+      .replace(/\s+/g, ' ') // Normalize spaces again
+      .trim();
+    
+    // Ensure proper comma separation
+    const parts = formatted.split(',').map(part => part.trim()).filter(part => part);
+    formatted = parts.join(', ');
+    
+    console.log(`Formatted address: "${address}" → "${formatted}"`);
+    return formatted;
+  };
+
+  // Geocode estimates addresses to get coordinates
+  const geocodeEstimates = async (estimatesToGeocode: EstimateRequest[]) => {
+    // Filter estimates that need geocoding (don't have coordinates or are older than 24 hours)
+    const estimatesNeedingGeocoding = estimatesToGeocode.filter(estimate => {
+      const hasCoordinates = estimate.latitude && estimate.longitude;
+      const isRecent = estimate.geocoded_at && 
+        (Date.now() - new Date(estimate.geocoded_at).getTime()) < 24 * 60 * 60 * 1000; // 24 hours
+      
+      return !hasCoordinates || !isRecent;
+    });
+
+    if (estimatesNeedingGeocoding.length === 0) {
+      console.log('✅ All estimates already have recent coordinates');
+      return;
+    }
+
+    console.log('🌍 Starting geocoding for estimates:', estimatesNeedingGeocoding.length, 'estimates');
+    setIsGeocoding(true);
+    setGeocodingProgress({ completed: 0, total: estimatesNeedingGeocoding.length });
+
+    try {
+      const updatedEstimates = [...estimatesToGeocode];
+      
+      for (let i = 0; i < estimatesNeedingGeocoding.length; i++) {
+        const estimate = estimatesNeedingGeocoding[i];
+        console.log(`Processing estimate ${estimate.id}:`, {
+          id: estimate.id,
+          service_address: estimate.service_address,
+          hasLatitude: !!estimate.latitude,
+          hasLongitude: !!estimate.longitude
+        });
+        
+        // Format the address for better geocoding
+        const formattedAddress = formatAddressForGeocoding(estimate.service_address);
+        let coordinates = await coordinateService.getLatLng(formattedAddress);
+        
+        // If geocoding fails, try just the street address without city/state
+        if (!coordinates) {
+          console.log(`Trying street address only for estimate ${estimate.id}`);
+          const streetAddress = formattedAddress.split(',')[0].trim();
+          console.log(`Street address: ${streetAddress}`);
+          coordinates = await coordinateService.getLatLng(streetAddress);
+        }
+        
+        // If still failing, try just the city and state
+        if (!coordinates) {
+          console.log(`Trying city/state for estimate ${estimate.id}`);
+          const cityState = formattedAddress.split(',').slice(-2).join(',').trim();
+          console.log(`City/State: ${cityState}`);
+          coordinates = await coordinateService.getLatLng(cityState);
+        }
+        
+        if (coordinates) {
+          console.log(`✅ Successfully geocoded estimate ${estimate.id}:`, coordinates);
+          
+          // Update the estimate with coordinates
+          const estimateIndex = updatedEstimates.findIndex(e => e.id === estimate.id);
+          if (estimateIndex !== -1) {
+            updatedEstimates[estimateIndex] = {
+              ...updatedEstimates[estimateIndex],
+              latitude: coordinates.lat,
+              longitude: coordinates.lng,
+              geocoded_at: new Date().toISOString()
+            };
+          }
+        } else {
+          console.warn(`❌ Failed to geocode address for estimate ${estimate.id}: ${estimate.service_address}`);
+          // Add a fallback coordinate for Southport, NC if all else fails
+          console.log(`📍 Using fallback coordinates for Southport, NC`);
+          
+          const estimateIndex = updatedEstimates.findIndex(e => e.id === estimate.id);
+          if (estimateIndex !== -1) {
+            updatedEstimates[estimateIndex] = {
+              ...updatedEstimates[estimateIndex],
+              latitude: 33.9207, // Southport, NC coordinates
+              longitude: -78.0208,
+              geocoded_at: new Date().toISOString()
+            };
+          }
+        }
+        
+        // Update progress
+        setGeocodingProgress({ completed: i + 1, total: estimatesNeedingGeocoding.length });
+      }
+      
+      console.log(`🎯 Setting ${updatedEstimates.length} estimates with coordinates`);
+      setEstimates(updatedEstimates);
+      
+    } catch (error) {
+      console.error('Error geocoding estimates:', error);
+    } finally {
+      setIsGeocoding(false);
+      setGeocodingProgress({ completed: 0, total: 0 });
     }
   };
 
@@ -534,6 +667,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       convertLeadToCustomer,
       loading,
       error,
+      isGeocoding,
+      geocodingProgress,
       refreshJobs,
       refreshCustomers,
       refreshEstimates,

@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { useApp } from '../../contexts/AppContext';
-import { Job, EstimateRequest } from '../../types';
+import { EstimateRequest } from '../../types';
 import { estimatesService } from '../../services/estimatesService';
 import JobsListView from './JobsListView';
 import JobsMapView from './JobsMapView';
 import JobProgressTracker from './JobProgressTracker';
 import JobStatsDashboard from './JobStatsDashboard';
 import CreateJobForm from './CreateJobForm';
-import { Map, List, Play, Plus, BarChart3 } from 'lucide-react';
+import { Map, List, Play } from 'lucide-react';
 
 const JobsView: React.FC = () => {
-  const { estimates, refreshEstimates, customers } = useApp();
+  const { estimates, refreshEstimates, customers, isGeocoding, geocodingProgress } = useApp();
   const [viewMode, setViewMode] = useState<'list' | 'map' | 'progress' | 'stats'>('list');
   const [selectedEstimate, setSelectedEstimate] = useState<EstimateRequest | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -81,7 +81,6 @@ const JobsView: React.FC = () => {
         // Status and pricing
         status: newStatus as any,
         quote_amount: currentEstimate.quote_amount || null,
-        amount: currentEstimate.amount || null,
         quote_notes: currentEstimate.quote_notes || null
       };
       
@@ -110,7 +109,7 @@ const JobsView: React.FC = () => {
     setViewMode('progress');
   };
 
-  const handleEstimateCreated = (estimate: EstimateRequest) => {
+  const handleEstimateCreated = () => {
     setShowCreateForm(false);
     refreshEstimates(); // Refresh the estimates list
   };
@@ -145,6 +144,15 @@ const JobsView: React.FC = () => {
               >
                 Retry
               </button>
+            </div>
+          )}
+          
+          {isGeocoding && (
+            <div className="flex items-center space-x-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg text-sm">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+              <span>
+                Geocoding addresses... ({geocodingProgress.completed}/{geocodingProgress.total})
+              </span>
             </div>
           )}
           
