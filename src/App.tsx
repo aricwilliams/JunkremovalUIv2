@@ -125,20 +125,20 @@ const AppContent: React.FC = () => {
   // If authenticated, show main app
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Announcement Bar */}
-      {isAnnouncementBarVisible && (
-        <AnnouncementBar onClose={hideAnnouncementBar} />
-      )}
-
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Announcement Bar */}
+        {isAnnouncementBarVisible && (
+          <AnnouncementBar onClose={hideAnnouncementBar} />
+        )}
+
         <Header onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
 
-        <main className={`flex-1 overflow-x-hidden overflow-y-auto ${isAnnouncementBarVisible ? 'pt-10' : ''}`}>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto">
           {renderCurrentView()}
         </main>
       </div>
