@@ -257,6 +257,119 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated, user]);
 
+  // Calculate analytics when estimates change
+  useEffect(() => {
+    if (estimates && estimates.length > 0) {
+      // Filter for jobs (estimates with job statuses)
+      const jobs = estimates.filter(estimate => 
+        estimate.status === 'accepted' ||
+        estimate.status === 'scheduled' ||
+        estimate.status === 'in progress' ||
+        estimate.status === 'completed' ||
+        estimate.status === 'cancelled'
+      );
+
+      // Calculate total revenue from completed jobs
+      const totalRevenue = estimates
+        .filter(estimate => estimate.status === 'completed' && estimate.quote_amount)
+        .reduce((sum, estimate) => sum + (estimate.quote_amount || 0), 0);
+
+      // Calculate average job value
+      const completedJobsWithAmount = estimates.filter(estimate => 
+        estimate.status === 'completed' && estimate.quote_amount && estimate.quote_amount > 0
+      );
+      const averageJobValue = completedJobsWithAmount.length > 0 
+        ? totalRevenue / completedJobsWithAmount.length 
+        : 0;
+
+      // Calculate completion rate
+      const totalJobs = estimates.filter(estimate => 
+        estimate.status === 'accepted' ||
+        estimate.status === 'scheduled' ||
+        estimate.status === 'in progress' ||
+        estimate.status === 'completed' ||
+        estimate.status === 'cancelled'
+      ).length;
+      const completedJobs = estimates.filter(estimate => estimate.status === 'completed').length;
+      const completionRate = totalJobs > 0 ? completedJobs / totalJobs : 0;
+
+      // Calculate monthly revenue for the last 6 months
+      const monthlyRevenue: number[] = [];
+      for (let i = 5; i >= 0; i--) {
+        const date = new Date();
+        date.setMonth(date.getMonth() - i);
+        const monthKey = date.toISOString().slice(0, 7); // YYYY-MM
+        
+        const monthRevenue = estimates
+          .filter(estimate => 
+            estimate.status === 'completed' && 
+            estimate.preferred_date && 
+            estimate.preferred_date.startsWith(monthKey) &&
+            estimate.quote_amount
+          )
+          .reduce((sum, estimate) => sum + (estimate.quote_amount || 0), 0);
+        
+        monthlyRevenue.push(monthRevenue);
+      }
+
+      // Calculate job sources from estimates
+      const jobsBySource: { [key: string]: number } = {};
+      estimates.forEach(estimate => {
+        if (estimate.how_did_you_hear) {
+          const source = estimate.how_did_you_hear.toLowerCase();
+          jobsBySource[source] = (jobsBySource[source] || 0) + 1;
+        }
+      });
+
+      // Calculate top services from material types
+      const topServices: { name: string; count: number; revenue: number }[] = [];
+      const materialTypeStats: { [key: string]: { count: number; revenue: number } } = {};
+      
+      estimates.forEach(estimate => {
+        if (estimate.material_types && estimate.material_types.length > 0) {
+          estimate.material_types.forEach((material: string) => {
+            if (!materialTypeStats[material]) {
+              materialTypeStats[material] = { count: 0, revenue: 0 };
+            }
+            materialTypeStats[material].count += 1;
+            if (estimate.quote_amount) {
+              materialTypeStats[material].revenue += estimate.quote_amount;
+            }
+          });
+        }
+      });
+
+      // Convert to array and sort by count
+      Object.entries(materialTypeStats).forEach(([name, stats]) => {
+        topServices.push({
+          name,
+          count: stats.count,
+          revenue: stats.revenue
+        });
+      });
+      topServices.sort((a, b) => b.count - a.count);
+
+      setAnalytics(prev => ({
+        ...prev,
+        totalRevenue,
+        totalJobs: jobs.length,
+        averageJobValue,
+        completionRate,
+        customerSatisfaction: 4.8, // Default rating
+        monthlyRevenue,
+        jobsBySource,
+        topServices: topServices.slice(0, 5), // Top 5 services
+        estimatesStats: {
+          total: estimates.length,
+          sent: estimates.filter(e => e.status === 'quoted').length,
+          accepted: estimates.filter(e => e.status === 'accepted').length,
+          pending: estimates.filter(e => e.status === 'pending' || e.status === 'need review').length,
+          expired: estimates.filter(e => e.status === 'cancelled').length
+        }
+      }));
+    }
+  }, [estimates]);
+
   const addCustomer = (customerData: Omit<Customer, 'id' | 'created'>) => {
     const newCustomer: Customer = {
       ...customerData,

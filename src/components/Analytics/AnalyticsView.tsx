@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 const AnalyticsView: React.FC = () => {
-  const { analytics, jobs, customers, leads } = useApp();
+  const { analytics, estimates, customers, leads } = useApp();
 
   const stats = [
     {
@@ -128,7 +128,7 @@ const AnalyticsView: React.FC = () => {
           <div className="h-64 flex items-end justify-between space-x-2">
             {analytics.monthlyRevenue.map((revenue, index) => {
               const maxRevenue = Math.max(...analytics.monthlyRevenue);
-              const height = (revenue / maxRevenue) * 100;
+              const height = maxRevenue > 0 ? (revenue / maxRevenue) * 100 : 0;
               
               return (
                 <div key={index} className="flex-1 flex flex-col items-center">
@@ -205,22 +205,22 @@ const AnalyticsView: React.FC = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
           
           <div className="space-y-4">
-            {jobs.slice(0, 5).map((job) => (
-              <div key={job.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+            {estimates.slice(0, 5).map((estimate) => (
+              <div key={estimate.id} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
                 <div className="flex-shrink-0">
                   <Calendar className="w-5 h-5 text-gray-400" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">
-                    Job completed for {job.customerName}
+                    Estimate {estimate.status} for {estimate.full_name}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {new Date(job.updated).toLocaleDateString()}
+                    {new Date(estimate.updated_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex-shrink-0">
                   <span className="text-sm font-semibold text-green-600">
-                    +${job.actualTotal || job.totalEstimate}
+                    +${estimate.quote_amount || 0}
                   </span>
                 </div>
               </div>

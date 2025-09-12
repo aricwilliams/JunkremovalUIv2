@@ -23,12 +23,16 @@ import {
 } from 'lucide-react';
 import { Estimate, PricingItem, Customer } from '../../types';
 import { EstimateRequest, estimatesService } from '../../services/estimatesService';
+import { customersService, CreateCustomerRequest } from '../../services/customersService';
+import awsUploadService from '../../services/awsUploadService';
 import { useApp } from '../../contexts/AppContext';
 import { usePDFGenerator } from '../../hooks/usePDFGenerator';
+import { useToast } from '../../contexts/ToastContext';
 
 const EstimatesDashboard: React.FC = () => {
-  const { customers, estimates, refreshEstimates } = useApp();
+  const { customers, estimates, refreshEstimates, refreshCustomers } = useApp();
   const { generateEstimatePDF, generateSimpleQuotePDF, loading: pdfLoading } = usePDFGenerator();
+  const { showSuccess, showError } = useToast();
   const [activeTab, setActiveTab] = useState<'requests' | 'estimates' | 'pricing'>('estimates');
   const [selectedRequest, setSelectedRequest] = useState<EstimateRequest | null>(null);
   const [selectedEstimate, setSelectedEstimate] = useState<EstimateRequest | null>(null);
@@ -39,8 +43,16 @@ const EstimatesDashboard: React.FC = () => {
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteAmount, setQuoteAmount] = useState<number>(0);
   const [quoteNotes, setQuoteNotes] = useState<string>('');
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const [showCustomerUrlModal, setShowCustomerUrlModal] = useState(false);
   const [customerReviewUrl, setCustomerReviewUrl] = useState<string>('');
+  const [showSendFormModal, setShowSendFormModal] = useState(false);
+  const [sendFormData, setSendFormData] = useState({
+    customerName: '',
+    customerEmail: '',
+    customerPhone: '',
+    message: ''
+  });
 
   // Filter estimates based on quote amount
   const requests = estimates.filter(estimate => {
@@ -60,6 +72,12 @@ const EstimatesDashboard: React.FC = () => {
     fullName: '',
     phone: '',
     email: '',
+    // Customer address fields (for new customers only)
+    customerAddress: '',
+    customerCity: '',
+    customerState: '',
+    customerZipCode: '',
+    // Service address (for estimate request)
     serviceAddress: '',
     gateCode: '',
     apartmentNumber: '',
@@ -288,6 +306,52 @@ const EstimatesDashboard: React.FC = () => {
     }
   };
 
+  const handleSendFormToCustomer = async () => {
+    try {
+      // Validate form data
+      if (!sendFormData.customerName || !sendFormData.customerEmail) {
+        showError('Please fill in customer name and email');
+        return;
+      }
+
+      // Generate a unique form link using the API endpoint
+      const isProduction = import.meta.env.VITE_API_BASE_URL?.includes('junkremovalapi.onrender.com');
+      const baseUrl = isProduction 
+        ? 'https://junkremovalappplanner.com' 
+        : window.location.origin;
+      
+      // Generate a unique form ID (using timestamp and random string)
+      const formId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const formUrl = `${baseUrl}/customer-form/${formId}`;
+
+      // Here you would typically save the form link to your database 
+      // For now, we'll just show the link to the user
+      console.log('Generated form link for customer:', {
+        ...sendFormData,
+        formUrl,
+        formId
+      });
+
+      // Show success message with the form link
+      setCustomerReviewUrl(formUrl);
+      setShowCustomerUrlModal(true);
+      setShowSendFormModal(false);
+      
+      // Reset form data
+      setSendFormData({
+        customerName: '',
+        customerEmail: '',
+        customerPhone: '',
+        message: ''
+      });
+
+      showSuccess(`Form link generated successfully! Send this link to ${sendFormData.customerName}: ${formUrl}`);
+    } catch (error: any) {
+      console.error('Error generating form link:', error);
+      showError(`Failed to generate form link: ${error.message}`);
+    }
+  };
+
   // New request form handlers
   const handleCustomerSelection = (isNewCustomer: boolean, customerId?: string) => {
     if (isNewCustomer) {
@@ -329,16 +393,240 @@ const EstimatesDashboard: React.FC = () => {
 
     // Validate form based on customer type
     if (!requestFormData.isNewCustomer && !requestFormData.selectedCustomerId) {
-      alert('Please select an existing customer');
+      showError('Please select an existing customer');
       return;
     }
 
-    if (requestFormData.isNewCustomer && (!requestFormData.fullName || !requestFormData.phone || !requestFormData.email || !requestFormData.serviceAddress || !requestFormData.locationOnProperty || !requestFormData.approximateVolume)) {
-      alert('Please fill in all required fields for new customer');
+    if (requestFormData.isNewCustomer && (!requestFormData.fullName || !requestFormData.phone || !requestFormData.email || !requestFormData.customerAddress || !requestFormData.customerCity || !requestFormData.customerState || !requestFormData.customerZipCode || !requestFormData.serviceAddress || !requestFormData.locationOnProperty || !requestFormData.approximateVolume)) {
+      showError('Please fill in all required fields for new customer');
       return;
     }
 
     try {
+      setUploadingFiles(true);
+      let customerId = requestFormData.selectedCustomerId;
+
+      // Step 1: Create new customer if needed
+      if (requestFormData.isNewCustomer) {
+        try {
+          console.log('=== CREATING NEW CUSTOMER ===');
+          const customerData: CreateCustomerRequest = {
+            name: requestFormData.fullName,
+            email: requestFormData.email,
+            phone: requestFormData.phone.replace(/[\s\-\(\)]/g, ''),
+            address: requestFormData.customerAddress,
+            city: requestFormData.customerCity,
+            state: requestFormData.customerState,
+            zip_code: requestFormData.customerZipCode,
+            customer_type: 'residential',
+            status: 'new'
+          };
+
+          console.log('Customer data being sent:', JSON.stringify(customerData, null, 2));
+          const customerResponse = await customersService.createCustomer(customerData);
+          
+          console.log('Customer service response:', customerResponse);
+          
+          if (customerResponse.success) {
+            customerId = customerResponse.data.customer.id.toString();
+            console.log('✅ Customer created successfully with ID:', customerId);
+            console.log('Customer details:', customerResponse.data.customer);
+            showSuccess('New customer created successfully!');
+            
+            // Refresh customers list
+            if (refreshCustomers) {
+              await refreshCustomers();
+            }
+          } else {
+            console.error('❌ Customer creation failed:', customerResponse);
+            throw new Error(customerResponse.message || 'Failed to create customer');
+          }
+        } catch (error: any) {
+          console.error('❌ Error creating customer:', error);
+          console.error('Customer creation error details:', {
+            message: error.message,
+            response: error.response?.data,
+            status: error.response?.status
+          });
+          showError(`Failed to create customer: ${error.message}`);
+          setUploadingFiles(false);
+          return;
+        }
+      }
+
+      // Step 2: Upload photos and videos
+      let uploadedPhotos: string[] = [];
+      let uploadedVideos: string[] = [];
+
+      try {
+        console.log('=== UPLOADING FILES ===');
+        console.log('Photos to upload:', requestFormData.photos.length);
+        console.log('Videos to upload:', requestFormData.videos.length);
+        console.log('Customer ID for metadata:', customerId);
+
+        // Upload photos (try multiple first, fallback to single)
+        if (requestFormData.photos.length > 0) {
+          console.log('Uploading photos:', requestFormData.photos.length);
+          
+          // Validate all photos first
+          const validPhotos = [];
+          for (const file of requestFormData.photos) {
+            const validation = awsUploadService.validateFile(file, 10); // 10MB limit for photos
+            if (validation.valid) {
+              validPhotos.push(file);
+            } else {
+              console.error(`❌ Photo validation failed for ${file.name}:`, validation.error);
+            }
+          }
+          
+          if (validPhotos.length > 0) {
+            try {
+              // Try multiple upload first
+              console.log('Attempting multiple photo upload...');
+              const photoResponse = await awsUploadService.uploadMultipleFiles(
+                validPhotos,
+                { upload_type: 'estimate_request', customer_id: customerId },
+                ['estimate', 'photos']
+              );
+              
+              console.log('Multiple photo upload response:', photoResponse);
+              
+              if (photoResponse.success) {
+                // Handle different response formats
+                if (Array.isArray(photoResponse.data)) {
+                  // Multiple files response
+                  uploadedPhotos = photoResponse.data.map((item: any) => item.file_url || item.url);
+                } else if (photoResponse.data && photoResponse.data.file_url) {
+                  // Single file response (shouldn't happen with multiple, but just in case)
+                  uploadedPhotos = [photoResponse.data.file_url];
+                } else if (photoResponse.data && Array.isArray((photoResponse.data as any).files)) {
+                  // Alternative array format
+                  uploadedPhotos = (photoResponse.data as any).files.map((item: any) => item.file_url || item.url);
+                } else {
+                  console.error('❌ Unexpected multiple upload response format:', photoResponse.data);
+                  throw new Error('Unexpected response format');
+                }
+                console.log('✅ Multiple photos uploaded successfully:', uploadedPhotos);
+              } else {
+                throw new Error(photoResponse.message || 'Multiple upload failed');
+              }
+            } catch (error) {
+              console.warn('Multiple photo upload failed, falling back to single uploads:', error);
+              
+              // Fallback to single uploads
+              for (let i = 0; i < validPhotos.length; i++) {
+                const file = validPhotos[i];
+                console.log(`Uploading photo ${i + 1}/${validPhotos.length}:`, file.name);
+                
+                const singlePhotoResponse = await awsUploadService.uploadFile(
+                  file,
+                  { upload_type: 'estimate_request', customer_id: customerId },
+                  ['estimate', 'photos']
+                );
+                
+                if (singlePhotoResponse.success) {
+                  uploadedPhotos.push(singlePhotoResponse.data.file_url);
+                  console.log(`✅ Photo ${i + 1} uploaded successfully:`, singlePhotoResponse.data.file_url);
+                } else {
+                  console.error(`❌ Photo ${i + 1} upload failed:`, singlePhotoResponse);
+                }
+              }
+            }
+          }
+          console.log('✅ All photos processed:', uploadedPhotos);
+        }
+
+        // Upload videos (try multiple first, fallback to single)
+        if (requestFormData.videos.length > 0) {
+          console.log('Uploading videos:', requestFormData.videos.length);
+          
+          // Validate all videos first
+          const validVideos = [];
+          for (const file of requestFormData.videos) {
+            const validation = awsUploadService.validateFile(file, 50); // 50MB limit for videos
+            if (validation.valid) {
+              validVideos.push(file);
+            } else {
+              console.error(`❌ Video validation failed for ${file.name}:`, validation.error);
+            }
+          }
+          
+          if (validVideos.length > 0) {
+            try {
+              // Try multiple upload first
+              console.log('Attempting multiple video upload...');
+              const videoResponse = await awsUploadService.uploadMultipleFiles(
+                validVideos,
+                { upload_type: 'estimate_request', customer_id: customerId },
+                ['estimate', 'videos']
+              );
+              
+              console.log('Multiple video upload response:', videoResponse);
+              
+              if (videoResponse.success) {
+                // Handle different response formats
+                if (Array.isArray(videoResponse.data)) {
+                  // Multiple files response
+                  uploadedVideos = videoResponse.data.map((item: any) => item.file_url || item.url);
+                } else if (videoResponse.data && videoResponse.data.file_url) {
+                  // Single file response (shouldn't happen with multiple, but just in case)
+                  uploadedVideos = [videoResponse.data.file_url];
+                } else if (videoResponse.data && Array.isArray((videoResponse.data as any).files)) {
+                  // Alternative array format
+                  uploadedVideos = (videoResponse.data as any).files.map((item: any) => item.file_url || item.url);
+                } else {
+                  console.error('❌ Unexpected multiple upload response format:', videoResponse.data);
+                  throw new Error('Unexpected response format');
+                }
+                console.log('✅ Multiple videos uploaded successfully:', uploadedVideos);
+              } else {
+                throw new Error(videoResponse.message || 'Multiple upload failed');
+              }
+            } catch (error) {
+              console.warn('Multiple video upload failed, falling back to single uploads:', error);
+              
+              // Fallback to single uploads
+              for (let i = 0; i < validVideos.length; i++) {
+                const file = validVideos[i];
+                console.log(`Uploading video ${i + 1}/${validVideos.length}:`, file.name);
+                
+                const singleVideoResponse = await awsUploadService.uploadFile(
+                  file,
+                  { upload_type: 'estimate_request', customer_id: customerId },
+                  ['estimate', 'videos']
+                );
+                
+                if (singleVideoResponse.success) {
+                  uploadedVideos.push(singleVideoResponse.data.file_url);
+                  console.log(`✅ Video ${i + 1} uploaded successfully:`, singleVideoResponse.data.file_url);
+                } else {
+                  console.error(`❌ Video ${i + 1} upload failed:`, singleVideoResponse);
+                }
+              }
+            }
+          }
+          console.log('✅ All videos processed:', uploadedVideos);
+        }
+      } catch (error: any) {
+        console.error('❌ Error uploading files:', error);
+        console.error('File upload error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        showError(`Failed to upload files: ${error.message}`);
+        setUploadingFiles(false);
+        return;
+      }
+
+      // Step 3: Create estimate request
+      try {
+        console.log('=== CREATING ESTIMATE REQUEST ===');
+        console.log('Customer ID to use:', customerId);
+        console.log('Is new customer:', requestFormData.isNewCustomer);
+        console.log('Uploaded photos:', uploadedPhotos);
+        console.log('Uploaded videos:', uploadedVideos);
+
       // Clean up phone number format (remove dashes, spaces, parentheses)
       const cleanPhoneNumber = requestFormData.phone?.replace(/[\s\-\(\)]/g, '') || '';
 
@@ -367,15 +655,15 @@ const EstimatesDashboard: React.FC = () => {
         
         // OPTIONAL FIELDS - Include existing values (convert to proper types)
         is_new_client: Boolean(requestFormData.isNewCustomer),
-        existing_client_id: requestFormData.isNewCustomer ? null : parseInt(requestFormData.selectedCustomerId),
+          existing_client_id: requestFormData.isNewCustomer ? parseInt(customerId) : parseInt(requestFormData.selectedCustomerId),
         ok_to_text: Boolean(requestFormData.textOptIn),
         gate_code: requestFormData.gateCode || null,
         apartment_unit: requestFormData.apartmentNumber || null,
         preferred_date: formatDateForMySQL(requestFormData.preferredDate),
         preferred_time: requestFormData.preferredTime || null,
         access_considerations: requestFormData.accessConsiderations || null,
-        photos: requestFormData.photos.length > 0 ? requestFormData.photos.map(f => f.name) : null,
-        videos: requestFormData.videos.length > 0 ? requestFormData.videos.map(f => f.name) : null,
+          photos: uploadedPhotos.length > 0 ? uploadedPhotos : null,
+          videos: uploadedVideos.length > 0 ? uploadedVideos : null,
         approximate_item_count: requestFormData.approximateItemCount || null,
         items_filled_water: Boolean(requestFormData.filledWithWater),
         items_filled_oil_fuel: Boolean(requestFormData.filledWithOil),
@@ -398,12 +686,16 @@ const EstimatesDashboard: React.FC = () => {
         quote_notes: ''
       };
 
-      console.log('Creating new estimate with data:', estimateData);
+        console.log('Estimate data being sent:', JSON.stringify(estimateData, null, 2));
 
-      // Create the new estimate via API
-      await estimatesService.createEstimate(estimateData);
-
-      console.log('New estimate created successfully');
+        // Submit the estimate request
+        const response = await estimatesService.createEstimate(estimateData);
+        
+        console.log('Estimate service response:', response);
+        
+        if (response.success) {
+          console.log('✅ Estimate request created successfully:', response.data);
+          showSuccess('Request submitted successfully! We\'ll review it and send you a quote within 24 hours.');
       
       // Reset form
       setRequestFormData({
@@ -412,6 +704,10 @@ const EstimatesDashboard: React.FC = () => {
         fullName: '',
         phone: '',
         email: '',
+            customerAddress: '',
+            customerCity: '',
+            customerState: '',
+            customerZipCode: '',
         serviceAddress: '',
         gateCode: '',
         apartmentNumber: '',
@@ -438,19 +734,30 @@ const EstimatesDashboard: React.FC = () => {
         requestDonationPickup: false,
         requestDemolition: false,
         howDidYouHear: '',
-        priority: 'standard',
+            priority: 'standard' as 'standard' | 'urgent' | 'low',
         textOptIn: false
       });
 
       setShowNewRequest(false);
-      
-      // Refresh estimates data
       await refreshEstimates();
-      
-      alert('Request submitted successfully!');
+        } else {
+          console.error('❌ Failed to create estimate request:', response);
+          showError(`Failed to submit request: ${response.message || 'Unknown error'}`);
+        }
     } catch (error: any) {
-      console.error('Error creating estimate:', error);
-      alert(`Failed to create estimate: ${error.message || 'Unknown error'}`);
+        console.error('❌ Error creating estimate request:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        showError(`Error submitting request: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error: any) {
+      console.error('Error in handleSubmitRequest:', error);
+      showError(`Error submitting request: ${error.message || 'Unknown error'}`);
+    } finally {
+      setUploadingFiles(false);
     }
   };
 
@@ -462,13 +769,20 @@ const EstimatesDashboard: React.FC = () => {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Estimates & Client Requests</h1>
           <p className="text-sm sm:text-base text-gray-600">Manage client portal requests and create estimates</p>
         </div>
-        <div className="flex justify-center sm:justify-end">
+        <div className="flex flex-col sm:flex-row justify-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-3">
           <button
             onClick={() => setShowNewRequest(true)}
             className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm sm:text-base"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Request</span>
+          </button>
+          <button
+            onClick={() => setShowSendFormModal(true)}
+            className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+          >
+            <Send className="w-4 h-4" />
+            <span>Send Form to Customer</span>
           </button>
         </div>
       </div>
@@ -838,6 +1152,7 @@ const EstimatesDashboard: React.FC = () => {
           handleMaterialTypeToggle={handleMaterialTypeToggle}
           customers={customers}
           handleCustomerSelection={handleCustomerSelection}
+          uploadingFiles={uploadingFiles}
         />
       )}
 
@@ -1732,6 +2047,7 @@ interface NewRequestModalProps {
   handleMaterialTypeToggle: (materialType: string) => void;
   customers: Customer[];
   handleCustomerSelection: (isNewCustomer: boolean, customerId?: string) => void;
+  uploadingFiles: boolean;
 }
 
 const NewRequestModal: React.FC<NewRequestModalProps> = ({
@@ -1741,7 +2057,8 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
   setFormData,
   handleMaterialTypeToggle,
   customers,
-  handleCustomerSelection
+  handleCustomerSelection,
+  uploadingFiles
 }) => {
   const materialTypeOptions = [
     'Wood', 'Metal', 'Electronics', 'Furniture', 'Appliances',
@@ -1924,11 +2241,73 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             </div>
           </div>
 
+          {/* Customer Address (New Customers Only) */}
+          {formData.isNewCustomer && (
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <MapPin className="w-5 h-5 mr-2" />
+                Customer Address
+                <span className="ml-2 text-sm text-red-500 font-normal">* Required for new customers</span>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Street Address *</label>
+                  <input
+                    type="text"
+                    required={formData.isNewCustomer}
+                    value={formData.customerAddress}
+                    onChange={(e) => setFormData({ ...formData, customerAddress: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="123 Main Street"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City *</label>
+                  <input
+                    type="text"
+                    required={formData.isNewCustomer}
+                    value={formData.customerCity}
+                    onChange={(e) => setFormData({ ...formData, customerCity: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="City"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">State *</label>
+                  <input
+                    type="text"
+                    required={formData.isNewCustomer}
+                    value={formData.customerState}
+                    onChange={(e) => setFormData({ ...formData, customerState: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="State"
+                    maxLength={2}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code *</label>
+                  <input
+                    type="text"
+                    required={formData.isNewCustomer}
+                    value={formData.customerZipCode}
+                    onChange={(e) => setFormData({ ...formData, customerZipCode: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="12345"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                This address will be saved to your customer profile and can be different from the service address below.
+              </p>
+            </div>
+          )}
+
           {/* Service Address */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
               <MapPin className="w-5 h-5 mr-2" />
               Service Address
+              <span className="ml-2 text-sm text-red-500 font-normal">* Where the junk removal will occur</span>
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="sm:col-span-2">
@@ -1944,7 +2323,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
                   value={formData.serviceAddress}
                   onChange={(e) => setFormData({ ...formData, serviceAddress: e.target.value })}
                   className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!formData.isNewCustomer && formData.selectedCustomerId ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                  placeholder="Street address where junk removal will occur"
+                  placeholder="Street address where junk removal will occur (can be different from customer address)"
                   disabled={!formData.isNewCustomer && formData.selectedCustomerId}
                 />
               </div>
@@ -2087,6 +2466,7 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Photos (Optional)</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
                 <input
                   type="file"
                   multiple
@@ -2095,23 +2475,58 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
                     const files = Array.from(e.target.files || []);
                     setFormData({ ...formData, photos: files });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">Upload photos to help us better understand your project</p>
+                    className="hidden"
+                    id="photo-upload"
+                  />
+                  <label htmlFor="photo-upload" className="cursor-pointer">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-600">Click to upload photos or drag and drop</p>
+                      <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB each</p>
+                    </div>
+                  </label>
+                </div>
                 {formData.photos.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600">Selected files:</p>
-                    <ul className="text-xs text-gray-500">
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Selected photos ({formData.photos.length}):</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                       {formData.photos.map((file: File, index: number) => (
-                        <li key={index}>• {file.name}</li>
+                        <div key={index} className="relative group">
+                          <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 rounded-lg flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newPhotos = formData.photos.filter((_: File, i: number) => i !== index);
+                                setFormData({ ...formData, photos: newPhotos });
+                              }}
+                              className="opacity-0 group-hover:opacity-100 bg-red-500 hover:bg-red-600 text-white rounded-full p-1 transition-all duration-200"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="mt-1">
+                            <p className="text-xs text-gray-600 truncate" title={file.name}>{file.name}</p>
+                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(1)}MB</p>
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Videos (Optional)</label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
                 <input
                   type="file"
                   multiple
@@ -2120,17 +2535,59 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
                     const files = Array.from(e.target.files || []);
                     setFormData({ ...formData, videos: files });
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="text-xs text-gray-500 mt-1">Upload videos to help us better understand your project</p>
+                    className="hidden"
+                    id="video-upload"
+                  />
+                  <label htmlFor="video-upload" className="cursor-pointer">
+                    <div className="flex flex-col items-center">
+                      <svg className="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-sm text-gray-600">Click to upload videos or drag and drop</p>
+                      <p className="text-xs text-gray-500">MP4, AVI, MOV up to 50MB each</p>
+                    </div>
+                  </label>
+                </div>
                 {formData.videos.length > 0 && (
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-600">Selected files:</p>
-                    <ul className="text-xs text-gray-500">
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Selected videos ({formData.videos.length}):</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {formData.videos.map((file: File, index: number) => (
-                        <li key={index}>• {file.name}</li>
+                        <div key={index} className="relative group">
+                          <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                            <video
+                              src={URL.createObjectURL(file)}
+                              className="w-full h-full object-cover"
+                              controls={false}
+                              muted
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="bg-black bg-opacity-50 rounded-full p-2">
+                                <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 5v14l11-7z"/>
+                                </svg>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="absolute top-2 right-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newVideos = formData.videos.filter((_: File, i: number) => i !== index);
+                                setFormData({ ...formData, videos: newVideos });
+                              }}
+                              className="bg-red-500 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="mt-1">
+                            <p className="text-xs text-gray-600 truncate" title={file.name}>{file.name}</p>
+                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(1)}MB</p>
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 )}
               </div>
@@ -2195,15 +2652,25 @@ const NewRequestModal: React.FC<NewRequestModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              disabled={uploadingFiles}
+              className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              disabled={uploadingFiles}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
-              Submit Request for Quote
+              {uploadingFiles && (
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
+              <span>
+                {uploadingFiles ? 'Creating Customer & Uploading Files...' : 'Submit Request for Quote'}
+              </span>
             </button>
           </div>
         </form>
@@ -2829,29 +3296,65 @@ const EstimateDetailsModal: React.FC<EstimateDetailsModalProps> = ({
               {/* Photos & Media */}
           {(estimate.photos && estimate.photos.length > 0) || (estimate.videos && estimate.videos.length > 0) ? (
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Photos & Media</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Photos & Media
+              </h3>
               <div className="bg-gray-50 rounded-lg p-4">
                 {estimate.photos && estimate.photos.length > 0 && (
-                  <div className="mb-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Photos ({estimate.photos.length})</h4>
-                    <div className="text-xs text-gray-600">
-                      {estimate.photos.map((photo: string, index: number) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <FileText className="w-3 h-3" />
-                          <span>{photo}</span>
+                  <div className="mb-6">
+                    <h4 className="font-medium text-gray-900 mb-3">Photos ({estimate.photos.length})</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {estimate.photos.map((photoUrl: string, index: number) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-square bg-gray-200 rounded-lg overflow-hidden">
+                            <img
+                              src={photoUrl}
+                              alt={`Photo ${index + 1}`}
+                              className="w-full h-full object-cover cursor-pointer hover:scale-105 transition-transform duration-200"
+                              onClick={() => window.open(photoUrl, '_blank')}
+                            />
+                          </div>
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
+                            <div className="opacity-0 group-hover:opacity-100 bg-white bg-opacity-90 rounded-full p-2 transition-all duration-200">
+                              <svg className="w-4 h-4 text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                              </svg>
+                            </div>
+                          </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
+                
                 {estimate.videos && estimate.videos.length > 0 && (
             <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Videos ({estimate.videos.length})</h4>
-                    <div className="text-xs text-gray-600">
-                      {estimate.videos.map((video: string, index: number) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <FileText className="w-3 h-3" />
-                          <span>{video}</span>
+                    <h4 className="font-medium text-gray-900 mb-3">Videos ({estimate.videos.length})</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {estimate.videos.map((videoUrl: string, index: number) => (
+                        <div key={index} className="relative group">
+                          <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
+                            <video
+                              src={videoUrl}
+                              className="w-full h-full object-cover cursor-pointer"
+                              controls
+                              preload="metadata"
+                            />
+                          </div>
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-600 truncate" title={videoUrl}>
+                              Video {index + 1}
+                            </p>
+                            <button
+                              onClick={() => window.open(videoUrl, '_blank')}
+                              className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                            >
+                              Open in new tab
+                            </button>
+                          </div>
                         </div>
                       ))}
               </div>
@@ -3097,6 +3600,166 @@ const QuoteAmountModal: React.FC<QuoteAmountModalProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Send Form to Customer Modal */}
+      {showSendFormModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Send Form to Customer</h2>
+              <button
+                onClick={() => setShowSendFormModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Name *
+                </label>
+                <input
+                  type="text"
+                  value={sendFormData.customerName}
+                  onChange={(e) => setSendFormData({ ...sendFormData, customerName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter customer name"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Email *
+                </label>
+                <input
+                  type="email"
+                  value={sendFormData.customerEmail}
+                  onChange={(e) => setSendFormData({ ...sendFormData, customerEmail: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter customer email"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Customer Phone (Optional)
+                </label>
+                <input
+                  type="tel"
+                  value={sendFormData.customerPhone}
+                  onChange={(e) => setSendFormData({ ...sendFormData, customerPhone: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter customer phone"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Custom Message (Optional)
+                </label>
+                <textarea
+                  value={sendFormData.message}
+                  onChange={(e) => setSendFormData({ ...sendFormData, message: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Add a custom message for the customer..."
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowSendFormModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendFormToCustomer}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Generate Form Link
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Customer URL Display Modal */}
+      {showCustomerUrlModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Form Link Generated</h2>
+              <button
+                onClick={() => setShowCustomerUrlModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Send this link to your customer so they can fill out the estimate request form:
+              </p>
+              
+              <div className="bg-gray-50 rounded-lg p-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={customerReviewUrl}
+                    readOnly
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(customerReviewUrl);
+                      showSuccess('Link copied to clipboard!');
+                    }}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-start space-x-2">
+                  <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium">How it works:</p>
+                    <ul className="mt-1 space-y-1 list-disc list-inside">
+                      <li>Customer clicks the link and fills out the form</li>
+                      <li>Form submission creates a pending estimate request</li>
+                      <li>You can then review and quote the request as normal</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setShowCustomerUrlModal(false)}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.open(`mailto:${sendFormData.customerEmail}?subject=Estimate Request Form&body=Please fill out this form to request an estimate: ${customerReviewUrl}`)}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              >
+                Send via Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

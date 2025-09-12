@@ -32,9 +32,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
     // Pending jobs - scheduled jobs
     const pendingJobs = estimates.filter(estimate => 
-      estimate.status === 'scheduled' && 
-      estimate.amount && 
-      estimate.amount > 0
+      estimate.status === 'scheduled'
     ).length;
 
     // Estimates that need review

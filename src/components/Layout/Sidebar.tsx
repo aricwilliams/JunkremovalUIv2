@@ -27,11 +27,13 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const { currentView, setCurrentView, estimates, leads, analytics } = useApp();
   
-  // Filter estimates to only show actual jobs (where amount is not null and not 0)
+  // Filter estimates to show jobs with various statuses (jobs are estimates)
   const jobs = estimates.filter(estimate => 
-    estimate.amount !== null && 
-    estimate.amount !== undefined && 
-    parseFloat(estimate.amount.toString()) > 0
+    estimate.status === 'accepted' ||
+    estimate.status === 'scheduled' ||
+    estimate.status === 'in progress' ||
+    estimate.status === 'completed' ||
+    estimate.status === 'cancelled'
   );
 
   const menuItems = [
@@ -45,13 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       id: 'jobs',
       label: 'Jobs',
       icon: Briefcase,
-      badge: jobs.filter(j => 
-        j.status === 'accepted' ||
-        j.status === 'scheduled' ||
-        j.status === 'in progress' ||
-        j.status === 'completed' ||
-        j.status === 'cancelled'
-      ).length
+      badge: jobs.length
     },
 
     {

@@ -181,7 +181,7 @@ const JobsView: React.FC = () => {
             <span className="sm:hidden">Map</span>
           </button>
 
-          <button
+          {/* <button
             onClick={() => setViewMode('stats')}
             className={`flex items-center justify-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-colors text-sm sm:text-base ${viewMode === 'stats'
                 ? 'bg-blue-600 text-white'
@@ -191,7 +191,7 @@ const JobsView: React.FC = () => {
             <BarChart3 className="w-4 h-4" />
             <span className="hidden sm:inline">Statistics</span>
             <span className="sm:hidden">Stats</span>
-          </button>
+          </button> */}
 
           {selectedEstimate && (
             <button
