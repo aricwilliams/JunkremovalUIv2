@@ -117,7 +117,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   // Geocode addresses to get coordinates
   const geocodeJobs = async (jobsToGeocode: EstimateRequest[]) => {
     setIsGeocoding(true);
-    console.log('Starting geocoding for jobs:', jobsToGeocode.length, 'jobs');
+    console.log('🌍 Starting geocoding for jobs:', jobsToGeocode.length, 'jobs');
     try {
       const jobsWithCoords: JobWithCoordinates[] = [];
       
@@ -152,16 +152,16 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
         }
         
         if (coordinates) {
-          console.log(`Successfully geocoded job ${job.id}:`, coordinates);
+          console.log(`✅ Successfully geocoded job ${job.id}:`, coordinates);
           jobsWithCoords.push({
             ...job,
             latitude: coordinates.lat,
             longitude: coordinates.lng
           });
         } else {
-          console.warn(`Failed to geocode address for job ${job.id}: ${job.service_address}`);
+          console.warn(`❌ Failed to geocode address for job ${job.id}: ${job.service_address}`);
           // Add a fallback coordinate for Southport, NC if all else fails
-          console.log(`Using fallback coordinates for Southport, NC`);
+          console.log(`📍 Using fallback coordinates for Southport, NC`);
           jobsWithCoords.push({
             ...job,
             latitude: 33.9207, // Southport, NC coordinates
@@ -170,12 +170,13 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
         }
       }
       
+      console.log(`🎯 Setting ${jobsWithCoords.length} jobs with coordinates`);
       setJobsWithCoordinates(jobsWithCoords);
       
       // Center map on first job's address
       if (jobsWithCoords.length > 0 && mapInstanceRef.current) {
         const firstJob = jobsWithCoords[0];
-        console.log('Centering map on first job:', {
+        console.log('🗺️ Centering map on first job:', {
           address: firstJob.service_address,
           coordinates: [firstJob.longitude, firstJob.latitude]
         });
@@ -185,7 +186,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
         });
         saveMapState([firstJob.longitude, firstJob.latitude], 14);
       } else {
-        console.log('Cannot center map:', {
+        console.log('❌ Cannot center map:', {
           hasJobs: jobsWithCoords.length > 0,
           hasMap: !!mapInstanceRef.current,
           jobsCount: jobsWithCoords.length
@@ -265,9 +266,15 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
   // Geocode jobs when jobs prop changes
   useEffect(() => {
     if (jobs.length > 0) {
-      console.log('Jobs received for geocoding:', jobs.length, 'jobs');
-      console.log('First job address:', jobs[0]?.service_address);
+      console.log('🔍 Jobs received for geocoding:', jobs.length, 'jobs');
+      console.log('🔍 First job details:', {
+        id: jobs[0]?.id,
+        address: jobs[0]?.service_address,
+        status: jobs[0]?.status
+      });
       geocodeJobs(jobs);
+    } else {
+      console.log('🔍 No jobs received for geocoding');
     }
   }, [jobs]);
 
@@ -426,17 +433,17 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
         // Add job markers function
         const addJobMarkers = () => {
           if (!graphicsLayerRef.current) {
-            console.log('No graphics layer available');
+            console.log('❌ No graphics layer available for markers');
             return;
           }
 
-          console.log('Adding markers for jobs:', filteredJobs.length);
+          console.log('📍 Adding markers for jobs:', filteredJobs.length);
           
           // Clear existing graphics
           graphicsLayerRef.current.removeAll();
 
           filteredJobs.forEach((job, index) => {
-            console.log(`Adding marker ${index + 1}:`, {
+            console.log(`📍 Adding marker ${index + 1}:`, {
               id: job.id,
               address: job.service_address,
               coordinates: [job.longitude, job.latitude]
@@ -467,7 +474,7 @@ const JobsMapView: React.FC<JobsMapViewProps> = ({
             graphicsLayerRef.current!.add(graphic);
           });
           
-          console.log(`Added ${filteredJobs.length} markers to map`);
+          console.log(`✅ Added ${filteredJobs.length} markers to map`);
         };
 
         // Store update function globally
